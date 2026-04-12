@@ -1,0 +1,16 @@
+.followBtn {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--primary);
+  border-radius: 999px;
+  height: 30px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 10px;
+}
+
+.followBtn:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, var(--card));
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
