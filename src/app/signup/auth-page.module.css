@@ -1,0 +1,59 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(107, 91, 149, 0.14), rgba(232, 144, 124, 0.14));
+}
+
+.card {
+  width: min(480px, 100%);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow-md);
+  padding: 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.card h1 {
+  font-size: 30px;
+  line-height: 1.25;
+}
+
+.card p {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.helperText {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.helperText a {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 14px;
+  }
+
+  .card {
+    border-radius: 14px;
+    padding: 18px;
+    gap: 12px;
+  }
+
+  .card h1 {
+    font-size: 24px;
+  }
+
+  .card p,
+  .helperText {
+    font-size: 14px;
+  }
+}
