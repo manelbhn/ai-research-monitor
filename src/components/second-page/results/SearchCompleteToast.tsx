@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
 import { CloseIcon, SuccessIcon } from "./icons";
-import styles from "./results.module.css";
+import styles from "@/app/results/results.module.css";
 
 type SearchCompleteToastProps = {
   query: string;
 };
 
 export default function SearchCompleteToast({ query }: SearchCompleteToastProps) {
+  const { t } = useAppPreferences();
   const [visible, setVisible] = useState(false);
   const storageKey = useMemo(
     () => `rdp.toast.search-complete.${query.trim().toLowerCase() || "default"}`,
@@ -44,11 +46,11 @@ export default function SearchCompleteToast({ query }: SearchCompleteToastProps)
   return (
     <div className={`${styles.toast} animate-slideIn`} role="status" aria-live="polite">
       <SuccessIcon className={styles.toastIcon} />
-      <span>Search completed successfully</span>
+      <span>{t("toastSearchComplete")}</span>
       <button
         type="button"
         className={styles.toastClose}
-        aria-label="Dismiss notification"
+        aria-label={t("toastDismissAria")}
         onClick={() => setVisible(false)}
       >
         <CloseIcon className={styles.toastCloseIcon} />

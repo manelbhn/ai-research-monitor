@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
 import { setAuthUser } from "@/lib/client-auth";
 import styles from "./AuthForm.module.css";
 
@@ -10,9 +11,11 @@ type AuthFormProps = {
 };
 
 export default function AuthForm({ mode }: AuthFormProps) {
+  const { t } = useAppPreferences();
   const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
 
   const isSignup = mode === "signup";
 
@@ -28,6 +31,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
       email: email.trim(),
       fullName: userName,
       createdAt: new Date().toISOString(),
+    }, {
+      remember: rememberMe,
     });
 
     router.push(redirectTarget);
@@ -37,35 +42,44 @@ export default function AuthForm({ mode }: AuthFormProps) {
     <form className={styles.form} onSubmit={handleSubmit}>
       {isSignup && (
         <label className={styles.field}>
-          <span>Full name</span>
+          <span>{t("authFullName")}</span>
           <input
             required
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="e.g. Sarah Chen"
+            placeholder={t("authFullNamePlaceholder")}
           />
         </label>
       )}
 
       <label className={styles.field}>
-        <span>Email</span>
+        <span>{t("authEmail")}</span>
         <input
           required
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@researchlab.com"
+          placeholder={t("authEmailPlaceholder")}
         />
       </label>
 
       <label className={styles.field}>
-        <span>Password</span>
+        <span>{t("authPassword")}</span>
         <input required type="password" placeholder="••••••••" minLength={8} />
       </label>
 
+      <label className={styles.rememberField}>
+        <input
+          type="checkbox"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+        />
+        <span>{t("authRememberMe")}</span>
+      </label>
+
       <button type="submit" className={styles.submitBtn}>
-        {isSignup ? "Create account" : "Log in"}
+        {isSignup ? t("authCreateAccount") : t("authLogin")}
       </button>
     </form>
   );

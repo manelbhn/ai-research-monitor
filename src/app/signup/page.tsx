@@ -1,19 +1,23 @@
+"use client";
+
 import Link from "next/link";
 import AuthForm from "@/components/auth/AuthForm";
+import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
 import styles from "./auth-page.module.css";
 
 export default function SignupPage() {
+  const { t } = useAppPreferences();
+
   return (
     <main className={styles.page}>
       <section className={styles.card}>
-        <h1>Become a permanent research client</h1>
+        <h1>{t("signupTitle")}</h1>
         <p>
-          Create your account to follow topics, save papers, and get daily or weekly trend
-          updates.
+          {t("signupText")}
         </p>
         <AuthForm mode="signup" />
         <p className={styles.helperText}>
-          Already have an account? <Link href="/login">Log in</Link>
+          {t("signupHaveAccount")} <Link href="/login">{t("signupLogin")}</Link>
         </p>
       </section>
     </main>

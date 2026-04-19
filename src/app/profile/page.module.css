@@ -4,7 +4,7 @@
   --profile-purple-strong: #52447f;
   --profile-rose-strong: #c28d9c;
   min-height: 100vh;
-  padding: 28px;
+  padding: 0 0 26px;
   background:
     radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--profile-rose) 22%, transparent), transparent 32%),
     radial-gradient(circle at 0% 100%, color-mix(in srgb, var(--profile-purple) 24%, transparent), transparent 34%),
@@ -18,29 +18,37 @@
 }
 
 .shell {
-  width: min(1180px, 100%);
+  width: min(1260px, 100%);
   margin: 0 auto;
   display: grid;
   gap: 18px;
+  padding-inline: clamp(10px, 2.2vw, 22px);
 }
 
 .headerCard {
   display: grid;
   gap: 18px;
-  border: 1px solid color-mix(in srgb, var(--primary) 22%, white);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background:
-    radial-gradient(circle at 18% 0%, rgba(124, 106, 196, 0.22), transparent 42%),
-    radial-gradient(circle at 88% 14%, rgba(212, 165, 165, 0.2), transparent 34%),
-    linear-gradient(180deg, var(--card) 0%, var(--card-strong) 100%);
-  border-radius: 24px;
-  box-shadow: 0 22px 36px rgba(34, 29, 67, 0.12);
-  padding: 24px;
+    radial-gradient(circle at 24% 8%, rgba(255, 255, 255, 0.12), transparent 42%),
+    radial-gradient(circle at 88% 12%, rgba(212, 165, 165, 0.28), transparent 36%),
+    linear-gradient(114deg, #635690 0%, #8f7ba7 56%, #b48e99 100%);
+  border-radius: 0 0 24px 24px;
+  box-shadow: 0 18px 30px rgba(34, 29, 67, 0.2);
+  padding: 24px 20px 30px;
+  color: #ffffff;
+}
+
+.headerMainRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .heroIdentity {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  display: grid;
+  gap: 8px;
 }
 
 .avatar {
@@ -59,7 +67,7 @@
 }
 
 .headerCard h1 {
-  font-size: clamp(30px, 4.6vw, 42px);
+  font-size: clamp(38px, 5.4vw, 52px);
   line-height: 1.2;
 }
 
@@ -73,38 +81,80 @@
 }
 
 .subtitle {
-  margin-top: 8px;
-  color: var(--text-secondary);
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.9);
   max-width: 720px;
+  font-size: clamp(15px, 1.7vw, 24px);
 }
 
 .actions {
   display: inline-flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.headerCard .secondaryBtn {
+  min-height: 62px;
+  padding-inline: 28px;
+  border-radius: 20px;
+  color: #5e4f93;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  font-size: clamp(18px, 1.8vw, 34px);
+  font-weight: 700;
+}
+
+.headerCard .secondaryBtn:hover {
+  background: #ffffff;
+}
+
+.iconActionBtn {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.iconActionBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.iconActionBtn svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .statsRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 44px;
 }
 
 .statPill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: color-mix(in srgb, var(--primary) 68%, #9f4d77);
-  border: 1px solid color-mix(in srgb, var(--primary) 22%, #ffffff);
-  background: linear-gradient(
-    120deg,
-    color-mix(in srgb, var(--primary) 14%, #ffffff),
-    color-mix(in srgb, #d4a5a5 16%, #ffffff)
-  );
+  display: grid;
+  gap: 2px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.statPill strong {
+  font-size: clamp(42px, 3.5vw, 58px);
+  line-height: 1;
+}
+
+.statPill small {
+  font-size: clamp(15px, 1.4vw, 26px);
 }
 
 .quickLinks {
@@ -114,17 +164,18 @@
 }
 
 .quickLinkCard {
-  min-height: 74px;
+  min-height: 126px;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--primary) 16%, white);
-  background: linear-gradient(180deg, var(--card) 0%, var(--card-strong) 100%);
+  border: 1px solid color-mix(in srgb, var(--primary) 10%, white);
+  background: color-mix(in srgb, var(--card) 96%, #f8f7ff);
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: clamp(24px, 2.2vw, 36px);
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 16px;
+  padding-inline: 28px;
   box-shadow: var(--shadow-sm);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
@@ -136,9 +187,10 @@
 }
 
 .quickLinkIcon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--profile-purple) 24%, #ffffff);
   background: linear-gradient(
     140deg,
@@ -151,8 +203,8 @@
 }
 
 .quickLinkIcon svg {
-  width: 17px;
-  height: 17px;
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: color-mix(in srgb, var(--profile-purple) 58%, #8f3a63);
   stroke-width: 1.9;
@@ -161,7 +213,7 @@
 }
 
 .quickLinkText {
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .primaryBtn,
@@ -216,16 +268,16 @@
 
 .panel {
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 22px;
   background: linear-gradient(180deg, var(--card) 0%, var(--card-strong) 100%);
-  padding: 20px;
+  padding: 26px 22px;
   box-shadow: var(--shadow-sm);
 }
 
 .sectionsGrid {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  grid-template-columns: 1fr;
 }
 
 .trendsPanel {
@@ -240,12 +292,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  font-size: clamp(34px, 2.8vw, 46px);
 }
 
 .sectionIcon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   border: 1px solid color-mix(in srgb, var(--profile-purple) 22%, #ffffff);
   background: linear-gradient(
     140deg,
@@ -258,8 +311,8 @@
 }
 
 .sectionIcon svg {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke: color-mix(in srgb, var(--profile-purple) 62%, #8f3a63);
   stroke-width: 1.9;
@@ -290,7 +343,7 @@
 .sectionHint {
   margin-top: 8px;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: clamp(16px, 1.4vw, 30px);
 }
 
 .emptyText {
@@ -324,12 +377,71 @@
 }
 
 .row strong {
-  font-size: 16px;
+  font-size: clamp(22px, 1.8vw, 32px);
 }
 
 .row p {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: clamp(16px, 1.3vw, 24px);
+}
+
+.noteContent {
+  flex: 1;
+  min-width: min(420px, 100%);
+  display: grid;
+  gap: 8px;
+}
+
+.noteContent p {
+  margin: 0;
+  display: -webkit-box;
+  line-clamp: 3;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.noteActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.noteActions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.emptyBox {
+  margin-top: 12px;
+  border: 1px dashed color-mix(in srgb, var(--border) 88%, #d7d2ec);
+  border-radius: 18px;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 24px;
+}
+
+.emptyIcon {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyIcon svg {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .preferenceWrap {
@@ -388,13 +500,13 @@
 }
 
 @media (max-width: 740px) {
-  .page {
-    padding: 18px;
-  }
-
   .headerCard {
     padding: 16px;
     border-radius: 18px;
+  }
+
+  .headerMainRow {
+    flex-direction: column;
   }
 
   .headerCard h1 {
@@ -415,6 +527,37 @@
     width: 100%;
   }
 
+  .headerCard .secondaryBtn,
+  .iconActionBtn {
+    min-height: 50px;
+    height: 50px;
+    border-radius: 16px;
+  }
+
+  .iconActionBtn svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .quickLinkIcon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+  }
+
+  .quickLinkIcon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .headerCard .secondaryBtn {
+    font-size: 18px;
+  }
+
+  .statsRow {
+    gap: 20px;
+  }
+
   .primaryBtn,
   .secondaryBtn,
   .ghostBtn,
@@ -432,6 +575,12 @@
     grid-template-columns: 1fr;
   }
 
+  .quickLinkCard {
+    min-height: 92px;
+    padding-inline: 16px;
+    gap: 12px;
+  }
+
   .countBadge {
     min-width: 26px;
     height: 26px;
@@ -444,10 +593,6 @@
 }
 
 @media (max-width: 520px) {
-  .page {
-    padding: 12px;
-  }
-
   .headerCard {
     border-radius: 14px;
     padding: 14px;
@@ -464,6 +609,10 @@
 
   .row {
     padding: 10px;
+  }
+
+  .noteContent {
+    min-width: 100%;
   }
 
   .row strong {

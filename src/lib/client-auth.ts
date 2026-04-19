@@ -25,6 +25,12 @@ export type SearchHistoryItem = {
   searchedAt: string;
 };
 
+export type TopicGapNote = {
+  id: string;
+  query: string;
+  content: string;
+};
+
 const AUTH_KEY = "rdp.auth.user";
 const TOPICS_KEY = "rdp.trends.topics";
 const FAVORITES_KEY = "rdp.profile.favorites";
@@ -43,7 +49,7 @@ export function getAuthUser(): AuthUser | null {
     return null;
   }
 
-  const raw = w.localStorage.getItem(AUTH_KEY);
+  const raw = w.localStorage.getItem(AUTH_KEY) ?? w.sessionStorage.getItem(AUTH_KEY);
   if (!raw) {
     return null;
   }
@@ -55,12 +61,23 @@ export function getAuthUser(): AuthUser | null {
   }
 }
 
-export function setAuthUser(user: AuthUser): void {
+export function setAuthUser(user: AuthUser, options?: { remember?: boolean }): void {
   const w = safeWindow();
   if (!w) {
     return;
   }
-  w.localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+
+  const remember = options?.remember ?? true;
+  const serialized = JSON.stringify(user);
+
+  if (remember) {
+    w.localStorage.setItem(AUTH_KEY, serialized);
+    w.sessionStorage.removeItem(AUTH_KEY);
+    return;
+  }
+
+  w.sessionStorage.setItem(AUTH_KEY, serialized);
+  w.localStorage.removeItem(AUTH_KEY);
 }
 
 export function clearAuthUser(): void {
@@ -69,6 +86,7 @@ export function clearAuthUser(): void {
     return;
   }
   w.localStorage.removeItem(AUTH_KEY);
+  w.sessionStorage.removeItem(AUTH_KEY);
 }
 
 export function getFollowedTopics(): FollowedTopic[] {
@@ -226,4 +244,35 @@ export function addSearchHistory(query: string): SearchHistoryItem[] {
   }
 
   return updated;
+}
+
+export function getTopicGapNotes(): TopicGapNote[] {
+  const w = safeWindow();
+  if (!w) {
+    return [];
+  }
+
+  const notes: TopicGapNote[] = [];
+  const prefix = "topic-gap-notes:";
+
+  for (let index = 0; index < w.localStorage.length; index += 1) {
+    const key = w.localStorage.key(index);
+    if (!key || !key.startsWith(prefix)) {
+      continue;
+    }
+
+    const query = key.slice(prefix.length).trim();
+    const content = w.localStorage.getItem(key)?.trim() ?? "";
+    if (!query || !content) {
+      continue;
+    }
+
+    notes.push({
+      id: key,
+      query,
+      content,
+    });
+  }
+
+  return notes.sort((a, b) => a.query.localeCompare(b.query));
 }

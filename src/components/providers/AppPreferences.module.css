@@ -1,0 +1,50 @@
+.controls {
+  position: fixed;
+  z-index: 120;
+  inset-block-start: 14px;
+  inset-inline-end: 14px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, #ffffff);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-sm);
+}
+
+.select {
+  min-height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--input-background);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 8px;
+}
+
+.label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .controls {
+    inset-block-start: 10px;
+    inset-inline-end: 10px;
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .select {
+    min-height: 32px;
+    font-size: 12px;
+  }
+
+  .label {
+    display: none;
+  }
+}

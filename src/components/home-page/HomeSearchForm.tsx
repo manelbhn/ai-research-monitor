@@ -1,9 +1,11 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
 import styles from "@/app/page.module.css";
 
 export default function HomeSearchForm() {
+  const { t } = useAppPreferences();
   const [query, setQuery] = useState("");
 
   const isDisabled = query.trim().length === 0;
@@ -17,7 +19,7 @@ export default function HomeSearchForm() {
   return (
     <section className={styles.searchPanel}>
       <label htmlFor="topic" className={styles.label}>
-        Research Topic
+        {t("searchTopic")}
       </label>
       <form className={styles.form} action="/results" method="get" onSubmit={handleSubmit}>
         <div className={styles.inputWrap}>
@@ -31,13 +33,13 @@ export default function HomeSearchForm() {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="e.g., Machine Learning, Quantum Computing, Climate Science..."
+            placeholder={t("searchPlaceholder")}
             className={styles.input}
             autoComplete="off"
           />
         </div>
         <button type="submit" className={styles.button} disabled={isDisabled}>
-          Search Papers
+          {t("searchButton")}
         </button>
       </form>
     </section>

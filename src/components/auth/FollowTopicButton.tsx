@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
 import { getAuthUser, getFollowedTopics, toggleFollowTopic } from "@/lib/client-auth";
 import styles from "./FollowTopicButton.module.css";
 
@@ -10,6 +11,7 @@ type FollowTopicButtonProps = {
 };
 
 export default function FollowTopicButton({ topic }: FollowTopicButtonProps) {
+  const { t } = useAppPreferences();
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -39,7 +41,7 @@ export default function FollowTopicButton({ topic }: FollowTopicButtonProps) {
 
   return (
     <button type="button" className={styles.followBtn} onClick={handleClick}>
-      {isFollowing ? "Following" : "Follow topic"}
+      {isFollowing ? t("followFollowing") : t("followTopic")}
     </button>
   );
 }

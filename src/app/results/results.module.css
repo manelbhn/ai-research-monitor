@@ -9,15 +9,31 @@
   color: var(--text-primary);
 }
 
+
 .topbar {
   min-height: 70px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 78%, #3f3671), color-mix(in srgb, var(--primary-soft) 88%, #544784));
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--primary) 92%, transparent), color-mix(in srgb, var(--primary) 72%, #ffffff 8%)),
+    color-mix(in srgb, var(--card) 70%, transparent);
   color: var(--hero-text-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 10px 22px;
+  border-bottom: 1px solid color-mix(in srgb, var(--primary) 38%, rgba(255, 255, 255, 0.42));
+  box-shadow: 0 10px 24px rgba(34, 25, 70, 0.14);
+  backdrop-filter: blur(18px) saturate(130%);
+}
+
+
+:global(html.dark) .topbar,
+:global(body.dark) .topbar,
+:global(.dark) .topbar {
+  background:
+    linear-gradient(120deg, #8f84c3, #8579b8),
+    rgba(44, 38, 72, 0.45) !important;
+  border-bottom-color: rgba(218, 210, 245, 0.34) !important;
+  box-shadow: 0 12px 24px rgba(12, 8, 24, 0.35) !important;
 }
 
 .topLeft {
@@ -27,17 +43,24 @@
 }
 
 .backLink {
-  width: 32px;
-  height: 32px;
+  min-height: 36px;
+  padding: 0 12px;
   border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   color: #f7f5ff;
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 0.18s ease, background-color 0.18s ease;
 }
 
 .backLink:hover {
-  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .topIcon,
@@ -75,17 +98,33 @@
 }
 
 .sortButton {
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.16);
   color: #f7f5ff;
-  font-size: 15px;
-  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 14px;
   border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   cursor: pointer;
+  transition: transform 0.18s ease, background-color 0.18s ease;
 }
 
 .sortButton:hover {
+  transform: translateY(-1px);
   background: rgba(255, 255, 255, 0.21);
+}
+
+.topButtonIcon {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .sortButton:focus-visible {
@@ -103,9 +142,49 @@
   filter: saturate(0.95);
 }
 
+.panelToggleGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panelToggleButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.14);
+  color: #f7f5ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.panelToggleButton:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.panelToggleButtonActive {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.toggleIcon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .contentWrap {
   display: grid;
-  grid-template-columns: minmax(280px, 330px) minmax(500px, 760px) minmax(280px, 330px);
+  grid-template-columns: minmax(280px, 330px) minmax(500px, 1fr);
   gap: 8px;
   width: 100%;
   margin: 0;
@@ -115,8 +194,11 @@
   align-items: stretch;
 }
 
-.leftPanel,
-.rightPanel {
+.contentWrapOne {
+  grid-template-columns: minmax(500px, 1fr);
+}
+
+.leftPanel {
   background: linear-gradient(180deg, var(--card) 0%, var(--card-strong) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -128,8 +210,7 @@
   box-shadow: var(--shadow-soft);
 }
 
-.leftPanel h2,
-.rightPanel h2 {
+.leftPanel h2 {
   font-size: 30px;
   margin-bottom: 22px;
   display: flex;
@@ -241,6 +322,9 @@
     linear-gradient(145deg, color-mix(in srgb, var(--secondary) 14%, var(--card-strong)), color-mix(in srgb, var(--primary) 18%, var(--card)));
   padding: 20px 22px;
   box-shadow: 0 18px 32px rgba(57, 45, 94, 0.17);
+  width: 100%;
+  max-width: 760px;
+  justify-self: center;
 }
 
 .topicSummaryEyebrow {
@@ -249,6 +333,45 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.topicSummaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detectGapButton {
+  min-height: 34px;
+  border-radius: 999px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 46%, var(--border));
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.detectGapButton:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--primary) 60%, var(--border));
+  background: color-mix(in srgb, var(--primary) 18%, var(--card));
+}
+
+.detectGapIcon {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .topicSummaryCard h2 {
@@ -350,6 +473,9 @@
 .cardActions {
   color: var(--text-muted);
   font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .paperCard h3 {
@@ -383,6 +509,25 @@
   font-size: 14px;
   line-height: 1.45;
   color: var(--text-secondary);
+}
+
+:global(html.dark) .insightBox,
+:global(body.dark) .insightBox,
+:global(.dark) .insightBox {
+  border-left-color: color-mix(in srgb, var(--secondary) 70%, var(--primary-soft));
+  background: color-mix(in srgb, var(--secondary) 18%, #201b33);
+}
+
+:global(html.dark) .insightTitle,
+:global(body.dark) .insightTitle,
+:global(.dark) .insightTitle {
+  color: color-mix(in srgb, var(--secondary) 58%, #fff);
+}
+
+:global(html.dark) .insightBox p,
+:global(body.dark) .insightBox p,
+:global(.dark) .insightBox p {
+  color: color-mix(in srgb, var(--hero-text-primary) 86%, #ffffff);
 }
 
 .tagRow {
@@ -460,9 +605,9 @@
 }
 
 .iconButton {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--text-muted);
@@ -474,6 +619,40 @@
 
 .iconButton:hover {
   background: color-mix(in srgb, var(--primary) 10%, var(--card));
+}
+
+.iconButtonActive {
+  border-color: color-mix(in srgb, var(--secondary) 48%, var(--border));
+  background: color-mix(in srgb, var(--secondary) 18%, white);
+  color: color-mix(in srgb, var(--secondary) 72%, #5d2323);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--secondary) 24%, white);
+}
+
+.soundToggleButton {
+  width: 32px;
+  height: 32px;
+}
+
+.soundIcon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.soundOn {
+  border-color: color-mix(in srgb, var(--secondary) 52%, var(--border));
+  background: color-mix(in srgb, var(--secondary) 20%, white);
+  color: color-mix(in srgb, var(--secondary) 78%, #5d2323);
+}
+
+.soundOff {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  color: color-mix(in srgb, var(--primary) 74%, #2a2256);
 }
 
 .statCard,
@@ -716,12 +895,15 @@
 
 @media (max-width: 1400px) {
   .contentWrap {
-    grid-template-columns: minmax(230px, 270px) minmax(420px, 700px) minmax(230px, 270px);
+    grid-template-columns: minmax(230px, 270px) minmax(420px, 1fr);
     gap: 8px;
   }
 
-  .leftPanel h2,
-  .rightPanel h2 {
+  .contentWrapOne {
+    grid-template-columns: minmax(420px, 1fr);
+  }
+
+  .leftPanel h2 {
     font-size: 24px;
   }
 
@@ -778,7 +960,8 @@
     overflow: visible;
   }
 
-  .contentWrap {
+  .contentWrap,
+  .contentWrapOne {
     grid-template-columns: 1fr;
     padding-inline: 14px;
     gap: 12px;
@@ -793,8 +976,7 @@
     overflow: visible;
   }
 
-  .leftPanel,
-  .rightPanel {
+  .leftPanel {
     position: static;
     max-height: none;
     overflow: visible;
@@ -808,10 +990,6 @@
     order: 2;
   }
 
-  .rightPanel {
-    order: 3;
-  }
-
   .topbar {
     height: auto;
     padding: 14px;
@@ -819,10 +997,18 @@
     flex-wrap: wrap;
   }
 
+  .backLink span {
+    display: none;
+  }
+
   .topActions {
     width: 100%;
     justify-content: space-between;
     align-items: center;
+  }
+
+  .panelToggleGroup {
+    margin-left: auto;
   }
 
   .queryLine {
@@ -856,9 +1042,20 @@
     font-size: 13px;
   }
 
+  .backLink {
+    min-height: 34px;
+    padding-inline: 10px;
+  }
+
   .topActions {
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+
+  .panelToggleButton {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
   }
 
   .leftPanel h2,

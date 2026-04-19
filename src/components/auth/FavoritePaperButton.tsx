@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
 import { getFavoritePapers, toggleFavoritePaper } from "@/lib/client-auth";
 import styles from "./FavoritePaperButton.module.css";
 
@@ -10,6 +11,7 @@ type FavoritePaperButtonProps = {
 };
 
 export default function FavoritePaperButton({ paperId, paperTitle }: FavoritePaperButtonProps) {
+  const { t } = useAppPreferences();
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export default function FavoritePaperButton({ paperId, paperTitle }: FavoritePap
   return (
     <button
       type="button"
-      aria-label={isSaved ? "Remove favorite" : "Save as favorite"}
+      aria-label={isSaved ? t("favoriteRemoveAria") : t("favoriteAddAria")}
       onClick={handleToggle}
       className={`${styles.button} ${isSaved ? styles.saved : ""}`.trim()}
     >

@@ -66,6 +66,30 @@ export function AnalyticsIcon({ className }: IconProps) {
   );
 }
 
+export function ToggleFilterIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path d="M5 7H19" />
+      <path d="M5 12H19" />
+      <path d="M5 17H19" />
+      <circle cx="9" cy="7" r="1.7" />
+      <circle cx="15" cy="12" r="1.7" />
+      <circle cx="11" cy="17" r="1.7" />
+    </svg>
+  );
+}
+
+export function ToggleAnalyticsIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <rect x="5" y="5" width="5" height="5" rx="1" />
+      <rect x="14" y="5" width="5" height="5" rx="1" />
+      <rect x="5" y="14" width="5" height="5" rx="1" />
+      <rect x="14" y="14" width="5" height="5" rx="1" />
+    </svg>
+  );
+}
+
 export function RankIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
