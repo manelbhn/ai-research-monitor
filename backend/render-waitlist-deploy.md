@@ -17,7 +17,22 @@
 4. Add environment variables:
    - `DATABASE_URL` = your Render Postgres URL
    - `WAITLIST_ADMIN_TOKEN` = long random secret string
+   - `WAITLIST_ONLY_MODE` = `true`
    - `NODE_ENV` = `production`
+
+## Waitlist-only behavior from same repository
+
+This repo can contain your full project while Render serves only the waitlist.
+
+- With `WAITLIST_ONLY_MODE=true`, every non-API route redirects to `/waitlist`.
+- Waitlist APIs remain available (`/api/subscribe`, `/api/get-emails`, `/api/export-csv`).
+- Static files and Next internals are excluded from redirect logic.
+
+If you want extra safety, deploy from a dedicated branch:
+
+1. Create `waitlist-prod` branch from current code.
+2. Connect Render service to `waitlist-prod`.
+3. Keep developing full product on your normal branch.
 
 ## 3) Apply schema
 
