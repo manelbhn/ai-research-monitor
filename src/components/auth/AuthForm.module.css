@@ -1,0 +1,74 @@
+.form {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field span {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.field input {
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--input-background);
+  padding: 0 12px;
+  color: var(--text-primary);
+}
+
+.field input::placeholder {
+  color: var(--placeholder);
+}
+
+.field input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ring) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.rememberField {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rememberField input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+
+.submitBtn {
+  height: 46px;
+  border: none;
+  border-radius: 12px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: var(--shadow-primary);
+}
+
+.submitBtn:hover {
+  background: var(--primary-hover);
+}
+
+@media (max-width: 640px) {
+  .form {
+    gap: 12px;
+  }
+
+  .field input,
+  .submitBtn {
+    height: 44px;
+  }
+}
