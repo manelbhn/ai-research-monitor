@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { papers } from "@/components/second-page/results/data";
 import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
@@ -42,8 +42,8 @@ const TRENDS_TAG_KEYS: Partial<Record<string, TranslationKey>> = {
   privacy: "resultsTagPrivacy",
 };
 
-export default function TrendsPage() {
-  const { t } = useAppPreferences();
+function TrendsPageContent() {
+  const { locale, t } = useAppPreferences();
   const searchParams = useSearchParams();
   const activeTopic = searchParams.get("topic")?.trim().toLowerCase() ?? "";
 
@@ -56,6 +56,7 @@ export default function TrendsPage() {
         ...paper,
         title: titleKey ? t(titleKey) : paper.title,
         insight: insightKey ? t(insightKey) : paper.insight,
+        rawTags: paper.tags,
         tags: paper.tags.map((tag) => {
           const key = TRENDS_TAG_KEYS[tag];
           return key ? t(key) : tag.replaceAll("-", " ");
@@ -72,12 +73,13 @@ export default function TrendsPage() {
     }
 
     return allTrending.filter((paper) =>
+      paper.rawTags.some((tag) => tag.toLowerCase().includes(activeTopic)) ||
       paper.tags.some((tag) => tag.toLowerCase().includes(activeTopic)),
     );
   }, [activeTopic, localizedPapers]);
 
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} ${locale === "ar" ? styles.rtl : ""}`}>
       <section className={styles.shell}>
         <header className={styles.header}>
           <div className={styles.headerTop}>
@@ -119,7 +121,7 @@ export default function TrendsPage() {
                   <span className={styles.badge}>{t("resultsBadgeTrending")}</span>
                   <h2 className={styles.paperTitle}>{paper.title}</h2>
                   <p className={styles.meta}>
-                    {paper.authors} • {paper.metrics} • {paper.date}
+                    {paper.authors} - {paper.metrics} - {paper.date}
                   </p>
                   <p className={styles.insight}>{paper.insight}</p>
 
@@ -146,3 +148,12 @@ export default function TrendsPage() {
     </main>
   );
 }
+
+export default function TrendsPage() {
+  return (
+    <Suspense fallback={<main className={styles.page} />}>
+      <TrendsPageContent />
+    </Suspense>
+  );
+}
+

@@ -26,7 +26,7 @@ import PaperSummaryActions from "@/components/second-page/results/PaperSummaryAc
 import SearchCompleteToast from "@/components/second-page/results/SearchCompleteToast";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { TranslationKey } from "@/lib/i18n";
 import styles from "./results.module.css";
 
@@ -64,7 +64,7 @@ const RESULTS_TAG_KEYS: Partial<Record<string, TranslationKey>> = {
   privacy: "resultsTagPrivacy",
 };
 
-export default function ResultsPage() {
+function ResultsPageContent() {
   const { t, format, locale, voicePreference } = useAppPreferences();
   const searchParams = useSearchParams();
   const query = searchParams.get("q");
@@ -582,7 +582,7 @@ export default function ResultsPage() {
 
               <h3>{paper.title}</h3>
               <p className={styles.metaLine}>
-                {paper.authors} • {paper.metrics} • {paper.date}
+                {paper.authors} - {paper.metrics} - {paper.date}
               </p>
 
               <div className={styles.insightBox}>
@@ -617,3 +617,12 @@ export default function ResultsPage() {
     </main>
   );
 }
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={<main className={styles.page} />}>
+      <ResultsPageContent />
+    </Suspense>
+  );
+}
+
