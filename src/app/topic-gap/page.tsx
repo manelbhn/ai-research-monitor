@@ -2,50 +2,21 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
-import { papers } from "@/components/second-page/results/data";
+import { searchPapers, detectGaps, type GapCard } from "@/lib/api";
 import styles from "./topic-gap.module.css";
 
-type GapRule = {
-  gap: string;
-  keywords: string[];
-  action: string;
-};
-
-const GAP_RULES: GapRule[] = [
-  {
-    gap: "Ethical frameworks for AI deployment",
-    keywords: ["ethic", "fair", "bias", "responsible", "policy", "govern"],
-    action:
-      "Define measurable safety and fairness acceptance criteria, then evaluate every experiment against that checklist.",
-  },
-  {
-    gap: "Energy-efficient model architectures",
-    keywords: ["efficien", "energy", "cost", "latency", "compute", "green"],
-    action:
-      "Track energy and runtime per training run, and compare architecture choices using quality-per-watt metrics.",
-  },
-  {
-    gap: "Multilingual NLP capabilities",
-    keywords: ["multilingual", "cross-lingual", "language", "translation", "nlp"],
-    action:
-      "Add language coverage targets and benchmark underrepresented languages before scaling to production.",
-  },
-  {
-    gap: "Cross-domain transfer learning",
-    keywords: ["transfer", "cross-domain", "generalization", "adaptation", "domain"],
-    action:
-      "Build a transfer matrix across domains and identify where representations fail to generalize reliably.",
-  },
-];
-
-function normalize(value: string) {
-  return value.toLowerCase();
+function getPriorityClass(opportunity: number, s: Record<string, string>) {
+  if (opportunity >= 70) return s.priorityCritical;
+  if (opportunity >= 45) return s.priorityModerate;
+  return s.priorityStable;
 }
 
-function includesAny(text: string, keywords: string[]) {
-  return keywords.some((keyword) => text.includes(keyword));
+function getPriorityLabel(opportunity: number) {
+  if (opportunity >= 70) return "High priority";
+  if (opportunity >= 45) return "Medium priority";
+  return "Good coverage";
 }
 
 export default function TopicGapPage() {
@@ -53,95 +24,89 @@ export default function TopicGapPage() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q")?.trim();
   const shownQuery = query && query.length > 0 ? query : "machine learning";
-  const normalizedQuery = normalize(shownQuery);
+  const normalizedQuery = shownQuery.toLowerCase();
 
-  const queryTokens = useMemo(() => {
-    return normalizedQuery
-      .split(/\s+/)
-      .map((token) => token.trim())
-      .filter((token) => token.length > 2);
-  }, [normalizedQuery]);
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [gaps, setGaps] = useState<GapCard[]>([]);
+  const [topTags, setTopTags] = useState<{ tag: string; count: number }[]>([]);
+  const [paperCount, setPaperCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState("Fetching papers…");
+  const [error, setError] = useState<string | null>(null);
 
-  const relatedPapers = useMemo(() => {
-    const matched = papers.filter((paper) => {
-      const source = normalize(`${paper.title} ${paper.insight} ${paper.tags.join(" ")}`);
-      return queryTokens.length === 0 || includesAny(source, queryTokens);
-    });
-
-    return matched.length > 0 ? matched : papers;
-  }, [queryTokens]);
-
-  const tagCounts = useMemo(() => {
-    return relatedPapers
-      .flatMap((paper) => paper.tags)
-      .reduce<Record<string, number>>((acc, tag) => {
-        acc[tag] = (acc[tag] ?? 0) + 1;
-        return acc;
-      }, {});
-  }, [relatedPapers]);
-
-  const topTags = useMemo(() => {
-    return Object.entries(tagCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([tag, count]) => ({
-        tag: tag.replaceAll("-", " "),
-        count,
-      }));
-  }, [tagCounts]);
-
-  const gapCards = useMemo(() => {
-    return GAP_RULES.map((rule) => {
-      const aligned = relatedPapers.filter((paper) => {
-        const source = normalize(`${paper.title} ${paper.insight} ${paper.tags.join(" ")}`);
-        return includesAny(source, rule.keywords);
-      }).length;
-
-      const coverage = Math.round((aligned / relatedPapers.length) * 100);
-      const opportunity = Math.max(15, 100 - coverage);
-
-      return {
-        gap: rule.gap,
-        coverage,
-        opportunity,
-        action: rule.action,
-      };
-    }).sort((a, b) => b.opportunity - a.opportunity);
-  }, [relatedPapers]);
-
+  // ── Notes ──────────────────────────────────────────────────────────────────
   const storageKey = `topic-gap-notes:${normalizedQuery}`;
   const [notes, setNotes] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-
+    if (typeof window === "undefined") return "";
     return window.localStorage.getItem(storageKey) ?? "";
   });
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
-  const getPriorityClass = (opportunity: number) => {
-    if (opportunity >= 70) {
-      return styles.priorityCritical;
+  // ── Fetch papers then detect gaps ──────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      try {
+        // Step 1 — fetch real papers with short summaries
+        setStatus("Fetching papers from arXiv…");
+        const res = await searchPapers(shownQuery, { detail_level: "short" });
+
+        if (cancelled) return;
+
+        setPaperCount(res.papers.length);
+
+        if (res.papers.length === 0) {
+          setError("No papers found for this topic.");
+          setLoading(false);
+          return;
+        }
+
+        // Step 2 — extract top tags from real paper titles
+        const stopWords = new Set([
+          "a","an","the","of","in","for","and","on","with","to","is","are",
+          "via","using","based","from","this","that","we","our","its","into",
+        ]);
+        const wordCounts: Record<string, number> = {};
+        res.papers.forEach((p) => {
+          p.title.split(/\s+/).forEach((w) => {
+            const clean = w.replace(/[^a-zA-Z]/g, "").toLowerCase();
+            if (clean.length > 3 && !stopWords.has(clean)) {
+              wordCounts[clean] = (wordCounts[clean] ?? 0) + 1;
+            }
+          });
+        });
+        const tags = Object.entries(wordCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([tag, count]) => ({ tag, count }));
+
+        if (!cancelled) setTopTags(tags);
+
+        // Step 3 — send summaries to AI for real gap detection
+        setStatus("Analyzing gaps with AI…");
+        const summaries = res.papers
+          .map((p) => p.summary || p.abstract)
+          .filter(Boolean);
+
+        const gapRes = await detectGaps(shownQuery, summaries);
+
+        if (!cancelled) {
+          setGaps(gapRes.gaps);
+          setLoading(false);
+        }
+
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Something went wrong.");
+          setLoading(false);
+        }
+      }
     }
 
-    if (opportunity >= 45) {
-      return styles.priorityModerate;
-    }
-
-    return styles.priorityStable;
-  };
-
-  const getPriorityLabel = (opportunity: number) => {
-    if (opportunity >= 70) {
-      return "High priority";
-    }
-
-    if (opportunity >= 45) {
-      return "Medium priority";
-    }
-
-    return "Good coverage";
-  };
+    run();
+    return () => { cancelled = true; };
+  }, [shownQuery]);
 
   const handleSave = () => {
     window.localStorage.setItem(storageKey, notes);
@@ -154,94 +119,162 @@ export default function TopicGapPage() {
     setSavedAt(null);
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
+
         <header className={styles.header}>
           <div className={styles.headerTop}>
-            <Link href={`/results?q=${encodeURIComponent(shownQuery)}`} className={styles.backLink}>
+            <Link
+              href={`/results?q=${encodeURIComponent(shownQuery)}`}
+              className={styles.backLink}
+            >
               Back to results
             </Link>
-            <span className={styles.status}>Live gap scan</span>
+            <span className={styles.status}>
+              {loading ? status : error ? "Error" : "AI gap scan complete"}
+            </span>
           </div>
 
           <p className={styles.eyebrow}>Topic Gap Detector</p>
-          <h1 className={styles.title}>{shownQuery}: uncover the missing opportunities</h1>
+          <h1 className={styles.title}>
+            {shownQuery}: uncover the missing opportunities
+          </h1>
           <p className={styles.subtitle}>
-            This page highlights weakly-covered themes in your current result set and gives you a
-            workspace to capture research notes and next experiments.
+            The AI reads real arXiv papers on your topic and identifies what
+            research areas are missing, underexplored, or not addressed.
           </p>
 
           <div className={styles.statsRow}>
             <div className={styles.statPill}>
-              <strong>{relatedPapers.length}</strong>
+              <strong>{loading ? "…" : paperCount}</strong>
               <span>{t("resultsFoundSuffix")}</span>
             </div>
             <div className={styles.statPill}>
-              <strong>{gapCards[0]?.opportunity ?? 0}%</strong>
+              <strong>{loading ? "…" : `${gaps[0]?.opportunity ?? 0}%`}</strong>
               <span>highest opportunity score</span>
             </div>
           </div>
         </header>
 
-        <section className={styles.grid}>
-          <section className={styles.panel}>
-            <h2 className={styles.panelTitle}>Detected gap areas</h2>
-            <div className={styles.gapList}>
-              {gapCards.map((gap) => (
-                <article key={gap.gap} className={styles.gapCard}>
-                  <div className={styles.gapHeader}>
-                    <p className={styles.gapName}>{gap.gap}</p>
-                    <span className={`${styles.priorityPill} ${getPriorityClass(gap.opportunity)}`}>
-                      {getPriorityLabel(gap.opportunity)}
-                    </span>
-                  </div>
-                  <p className={styles.gapMeta}>
-                    Coverage: <strong className={styles.coverageValue}>{gap.coverage}%</strong> • Opportunity:{" "}
-                    <strong className={styles.opportunityValue}>{gap.opportunity}%</strong>
-                  </p>
-                  <div className={styles.gapBarTrack} aria-hidden="true">
-                    <span className={styles.gapBarFill} style={{ width: `${gap.opportunity}%` }} />
-                  </div>
-                  <p className={styles.gapAction}>{gap.action}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.panel}>
-            <h2 className={styles.panelTitle}>Top repeated themes</h2>
-            <div className={styles.tagWrap}>
-              {topTags.map((entry) => (
-                <span key={entry.tag} className={styles.tag}>
-                  {entry.tag} ({entry.count})
-                </span>
-              ))}
-            </div>
-
-            <h3 className={styles.notesHeading}>Research notes</h3>
-            <p className={styles.notesHint}>
-              Write hypotheses, candidate datasets, baselines, and validation criteria for your next paper.
+        {/* Loading */}
+        {loading && (
+          <section className={styles.panel} style={{ textAlign: "center", padding: "48px 32px" }}>
+            <p style={{ fontSize: "16px", color: "var(--text-secondary)" }}>
+              ⏳ {status}
             </p>
-
-            <textarea
-              className={styles.notesArea}
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Example: Evaluate multilingual transfer with low-resource benchmarks and track fairness drift per language."
-            />
-
-            <div className={styles.noteActions}>
-              <button type="button" className={styles.saveButton} onClick={handleSave}>
-                Save notes
-              </button>
-              <button type="button" className={styles.clearButton} onClick={handleClear}>
-                Clear
-              </button>
-              {savedAt && <span className={styles.savedText}>Saved at {savedAt}</span>}
-            </div>
+            <p style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "8px" }}>
+              Step 1: fetch real papers → Step 2: AI reads summaries → Step 3: identify gaps
+            </p>
           </section>
-        </section>
+        )}
+
+        {/* Error */}
+        {!loading && error && (
+          <section className={styles.panel} style={{ padding: "32px" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
+              ⚠️ {error}
+            </p>
+            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "8px" }}>
+              Make sure the backend is running at <code>http://localhost:8000</code>.
+            </p>
+          </section>
+        )}
+
+        {/* Main content */}
+        {!loading && !error && (
+          <section className={styles.grid}>
+
+            {/* Left — AI gap cards */}
+            <section className={styles.panel}>
+              <h2 className={styles.panelTitle}>
+                AI-detected research gaps
+              </h2>
+              <p style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "4px", marginBottom: "12px" }}>
+                Based on {paperCount} real arXiv papers about "{shownQuery}"
+              </p>
+              <div className={styles.gapList}>
+                {gaps.map((gap) => (
+                  <article key={gap.gap} className={styles.gapCard}>
+                    <div className={styles.gapHeader}>
+                      <p className={styles.gapName}>{gap.gap}</p>
+                      <span className={`${styles.priorityPill} ${getPriorityClass(gap.opportunity, styles)}`}>
+                        {getPriorityLabel(gap.opportunity)}
+                      </span>
+                    </div>
+
+                    {/* Reason from AI */}
+                    <p className={styles.gapMeta}>
+                      <strong>Why it&apos;s missing: </strong>
+                      {gap.reason}
+                    </p>
+
+                    <p className={styles.gapMeta} style={{ marginTop: "6px" }}>
+                      Opportunity score:{" "}
+                      <strong className={styles.opportunityValue}>
+                        {gap.opportunity}%
+                      </strong>
+                    </p>
+
+                    <div className={styles.gapBarTrack} aria-hidden="true">
+                      <span
+                        className={styles.gapBarFill}
+                        style={{ width: `${gap.opportunity}%` }}
+                      />
+                    </div>
+
+                    <p className={styles.gapAction}>{gap.action}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            {/* Right — tags + notes */}
+            <section className={styles.panel}>
+              <h2 className={styles.panelTitle}>Top repeated themes</h2>
+              <div className={styles.tagWrap}>
+                {topTags.length > 0 ? (
+                  topTags.map((entry) => (
+                    <span key={entry.tag} className={styles.tag}>
+                      {entry.tag} ({entry.count})
+                    </span>
+                  ))
+                ) : (
+                  <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>
+                    No themes detected.
+                  </p>
+                )}
+              </div>
+
+              <h3 className={styles.notesHeading}>Research notes</h3>
+              <p className={styles.notesHint}>
+                Write hypotheses, candidate datasets, baselines, and validation
+                criteria for your next paper.
+              </p>
+
+              <textarea
+                className={styles.notesArea}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Example: Address the gaps above by designing experiments that target underexplored areas."
+              />
+
+              <div className={styles.noteActions}>
+                <button type="button" className={styles.saveButton} onClick={handleSave}>
+                  Save notes
+                </button>
+                <button type="button" className={styles.clearButton} onClick={handleClear}>
+                  Clear
+                </button>
+                {savedAt && (
+                  <span className={styles.savedText}>Saved at {savedAt}</span>
+                )}
+              </div>
+            </section>
+
+          </section>
+        )}
       </section>
     </main>
   );

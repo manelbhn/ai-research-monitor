@@ -12,9 +12,7 @@ export default function SignupPage() {
     <main className={styles.page}>
       <section className={styles.card}>
         <h1>{t("signupTitle")}</h1>
-        <p>
-          {t("signupText")}
-        </p>
+        <p>{t("signupText")}</p>
         <AuthForm mode="signup" />
         <p className={styles.helperText}>
           {t("signupHaveAccount")} <Link href="/login">{t("signupLogin")}</Link>

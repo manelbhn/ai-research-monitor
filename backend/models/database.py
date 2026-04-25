@@ -15,6 +15,17 @@ class Paper(Base):
     pdf = Column(Text)
     source = Column(Text)
 
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True)
+    full_name = Column(Text, nullable=False)
+    email = Column(Text, nullable=False, unique=True)
+    hashed_password = Column(Text, nullable=False)
+    created_at = Column(Text, nullable=False)
+
+
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
