@@ -44,3 +44,4 @@ venv/
 __pycache__/
 *.pyc
 papers.db
+backend/waitlist-signups.json

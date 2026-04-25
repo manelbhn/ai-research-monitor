@@ -1,5 +1,6 @@
 "use client";
 
+import robotMascot from "./robot-mascot.png";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import HomeSearchForm from "@/components/home-page/HomeSearchForm";
@@ -47,6 +48,7 @@ export default function Home() {
     setLocale,
     setVoicePreference,
   } = useAppPreferences();
+
   const headlineSentences = useMemo(
     () => [t("homeHeadline1"), t("homeHeadline2"), t("homeHeadline3")],
     [t],
@@ -55,13 +57,12 @@ export default function Home() {
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement | null>(null);
-  const loopCopies = [0, 1] as const;
+  const loopCopies = [0] as const;
 
   const localizedPapers = useMemo(() => {
     return papers.map((paper) => {
       const titleKey = TREND_TITLE_KEYS[paper.id];
       const insightKey = TREND_INSIGHT_KEYS[paper.id];
-
       return {
         ...paper,
         rawTags: paper.tags,
@@ -79,6 +80,7 @@ export default function Home() {
     () => localizedPapers.filter((paper) => paper.badges.includes("Trending")).slice(0, 3),
     [localizedPapers],
   );
+
   const trendingTopicTags = useMemo(() => {
     const counts = papers
       .filter((paper) => paper.badges.includes("Trending"))
@@ -87,7 +89,6 @@ export default function Home() {
         acc[tag] = (acc[tag] ?? 0) + 1;
         return acc;
       }, {});
-
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
@@ -104,7 +105,6 @@ export default function Home() {
       const clippedSummary =
         summaryText.length > 180 ? `${summaryText.slice(0, 180).trimEnd()}...` : summaryText;
       const topicKey = TREND_TAG_KEYS[topic];
-
       return {
         topic,
         topicLabel: topicKey ? t(topicKey) : humanizeTag(topic),
@@ -119,10 +119,8 @@ export default function Home() {
   useEffect(() => {
     const storageKey = "homeHeadlineIndex";
     const headlineCount = headlineSentences.length;
-
     const previousRaw = window.sessionStorage.getItem(storageKey);
     const previousIndex = previousRaw === null ? -1 : Number.parseInt(previousRaw, 10);
-
     let initialIndex = 0;
     if (headlineCount > 1) {
       initialIndex = Math.floor(Math.random() * headlineCount);
@@ -130,7 +128,6 @@ export default function Home() {
         initialIndex = (initialIndex + 1) % headlineCount;
       }
     }
-
     setHeadlineIndex(initialIndex);
     window.sessionStorage.setItem(storageKey, String(initialIndex));
   }, [headlineSentences.length, locale]);
@@ -139,7 +136,6 @@ export default function Home() {
     const timer = window.setTimeout(() => {
       setShowAccountPrompt(!getAuthUser());
     }, 0);
-
     return () => {
       window.clearTimeout(timer);
     };
@@ -151,16 +147,13 @@ export default function Home() {
         setSettingsOpen(false);
       }
     };
-
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setSettingsOpen(false);
       }
     };
-
     window.addEventListener("mousedown", onPointerDown);
     window.addEventListener("keydown", onEscape);
-
     return () => {
       window.removeEventListener("mousedown", onPointerDown);
       window.removeEventListener("keydown", onEscape);
@@ -203,6 +196,7 @@ export default function Home() {
               </svg>
               <span>{t("homeNavFeatures")}</span>
             </a>
+            
             <Link href="/profile" className={styles.menuLink} aria-label={t("homeNavProfile")}>
               <svg viewBox="0 0 24 24" className={styles.navIcon} aria-hidden="true">
                 <circle cx="12" cy="8" r="3" />
@@ -284,23 +278,53 @@ export default function Home() {
           <div className={`${styles.heroOrb} ${styles.heroOrbMauve}`} />
         </div>
         <div className={styles.heroInner}>
-          <p className={styles.badge}>{t("homeBadge")}</p>
-          <div className={styles.titleStable}>
-            <p className={`${styles.title} ${styles.titleRotating}`}>
-              {headlineSentences[headlineIndex]}
-            </p>
+          {/* Left: text content */}
+          <div className={styles.heroContent}>
+            <p className={styles.badge}>{t("homeBadge")}</p>
+            <div className={styles.titleStable}>
+              <p className={`${styles.title} ${styles.titleRotating}`}>
+                {headlineSentences[headlineIndex]}
+              </p>
+            </div>
+            <div className={styles.subtitleStable}>
+              <p className={styles.subtitle}>
+                {t("homeSubtitle1")} {t("homeSubtitle2")}
+              </p>
+            </div>
+            <div className={styles.heroActionRow}>
+              <a href="#search-section" className={styles.primaryHeroBtn}>
+                {t("homeStart")}
+              </a>
+            </div>
           </div>
-          <div className={styles.subtitleStable}>
-            <p className={styles.subtitle}>
-              {t("homeSubtitle1")}
-              <br />
-              {t("homeSubtitle2")}
-            </p>
-          </div>
-          <div className={styles.heroActionRow}>
-            <a href="#search-section" className={styles.primaryHeroBtn}>
-              {t("homeStart")}
-            </a>
+
+          {/* Right: mascot */}
+          <div className={styles.mascotPanel} aria-hidden="true">
+            <div className={styles.mascotFloatTag} style={{ top: "12%", left: "-2%" }}>
+              <span className={styles.mascotTagDot} />
+              {t("homeMascotLabelSummary")}
+            </div>
+            <div className={styles.mascotFloatTag} style={{ top: "30%", right: "-8%" }}>
+              <span className={styles.mascotTagDot} />
+              {t("homeMascotLabelInsights")}
+            </div>
+            <div className={styles.mascotFloatTag} style={{ bottom: "28%", left: "-6%" }}>
+              <span className={styles.mascotTagDot} />
+              {t("homeMascotLabelGaps")}
+            </div>
+            <div className={styles.mascotFloatTag} style={{ bottom: "10%", right: "-4%" }}>
+              <span className={styles.mascotTagDot} />
+              {t("homeMascotLabelRelevance")}
+            </div>
+
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={robotMascot.src}
+              alt=""
+              width={300}
+              height={300}
+              className={styles.mascotImg}
+            />
           </div>
         </div>
       </section>
@@ -412,7 +436,7 @@ export default function Home() {
                         <span className={styles.trendBadge}>{t("resultsBadgeTrending")}</span>
                         <h3>{paper.title}</h3>
                         <p className={styles.trendMeta}>
-                          {paper.authors} • {paper.date}
+                          {paper.authors} - {paper.date}
                         </p>
                         <div className={styles.trendTags}>
                           {paper.tags.slice(0, 3).map((tag) => (
@@ -449,9 +473,7 @@ export default function Home() {
 
               <div className={styles.accountCopy}>
                 <p className={styles.accountTitle}>{t("homeAccountTitle")}</p>
-                <p className={styles.accountText}>
-                  {t("homeAccountText")}
-                </p>
+                <p className={styles.accountText}>{t("homeAccountText")}</p>
               </div>
 
               <div className={styles.accountActions}>
@@ -466,7 +488,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
     </main>
   );
 }

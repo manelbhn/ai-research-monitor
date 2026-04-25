@@ -237,7 +237,6 @@
 html {
   height: 100%;
   font-size: var(--font-size);
-  scroll-behavior: smooth;
 }
 
 html,
@@ -342,6 +341,13 @@ input {
 
   50% {
     opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slideIn,
+  .animate-pulse {
+    animation: none !important;
   }
 }
 
