@@ -9,7 +9,7 @@ from services.ranker        import rank_papers
 # ─────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────
-TOPIC       = "DATA MINING"
+TOPIC       = "AI"
 DATE_FROM   = "2023-01-01"
 DATE_TO     = "2024-01-01"
 DETAIL      = "medium"           # "short" | "medium" | "detailed"
