@@ -103,6 +103,7 @@ def test_fetch(topic, date_from, date_to, sources):
 # ─────────────────────────────────────────
 # STEP 2 — SUMMARIZE
 # ─────────────────────────────────────────
+
 def test_summarize_all(papers: list, detail: str):
     separator(f"STEP 2 - Summarizing all papers in parallel (level: {detail})")
 
@@ -140,6 +141,19 @@ def test_summarize_all(papers: list, detail: str):
 # ─────────────────────────────────────────
 # STEP 3 — RANK
 # ─────────────────────────────────────────
+from services.keyword_extractor import extract_keywords_from_papers  # Amani
+from services.keyword_cleaner   import run_trend_pipeline             # Chiraz
+
+def run_pipeline():
+    papers = test_fetch(TOPIC, DATE_FROM, DATE_TO, SOURCES)
+    
+    papers = extract_keywords_from_papers(papers)  # ← Amani (KeyBERT)
+    trend_data = run_trend_pipeline(papers)         # ← Chiraz (nettoyage)
+    
+    papers = test_summarize_all(papers, DETAIL)
+    ranked = test_ranker(papers, TOPIC)
+    display_results(ranked)
+
 def test_ranker(papers: list, topic: str):
     separator("STEP 3 - Ranking papers")
 
