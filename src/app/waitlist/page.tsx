@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import robotMascot from "../robot-mascot.png";
+import robotMascot from "../robot-wait.png";
 import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
 import type { Locale, ThemeMode, VoicePreference } from "@/lib/i18n";
 import styles from "./waitlist.module.css";
