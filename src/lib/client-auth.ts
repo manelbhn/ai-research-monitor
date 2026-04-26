@@ -2,6 +2,7 @@ export type AuthUser = {
   email: string;
   fullName: string;
   createdAt: string;
+  token: string;
 };
 
 export type TrendPreference = "daily" | "weekly" | "monthly";

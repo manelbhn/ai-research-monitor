@@ -7,7 +7,6 @@ import FollowTopicButton from "@/components/auth/FollowTopicButton";
 import SearchHistoryTracker from "@/components/auth/SearchHistoryTracker";
 import {
   categories,
-  papers,
   publicationYears,
   researchGaps,
   trendingTopics,
@@ -26,82 +25,113 @@ import PaperSummaryActions from "@/components/second-page/results/PaperSummaryAc
 import SearchCompleteToast from "@/components/second-page/results/SearchCompleteToast";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { TranslationKey } from "@/lib/i18n";
+import { useEffect, useRef, useState } from "react";
 import styles from "./results.module.css";
+import { searchPapers, type ApiPaper } from "@/lib/api";
 
-const RESULTS_PAPER_TITLE_KEYS: Record<string, TranslationKey> = {
-  p1: "resultsPaperP1Title",
-  p2: "resultsPaperP2Title",
-  p3: "resultsPaperP3Title",
-  p4: "resultsPaperP4Title",
-  p5: "resultsPaperP5Title",
-};
+// ── Adapt ApiPaper → the shape the existing template expects ─────────────────
 
-const RESULTS_PAPER_INSIGHT_KEYS: Record<string, TranslationKey> = {
-  p1: "resultsPaperP1Insight",
-  p2: "resultsPaperP2Insight",
-  p3: "resultsPaperP3Insight",
-  p4: "resultsPaperP4Insight",
-  p5: "resultsPaperP5Insight",
-};
+interface DisplayPaper {
+  id: string;
+  title: string;
+  authors: string;       // template renders as a string
+  date: string;
+  metrics: string;       // template slot — we use relevance score here
+  insight: string;       // template slot — we use the AI summary here
+  badges: string[];
+  tags: string[];
+  pdf: string;
+  abstract: string;
+}
 
-const RESULTS_TAG_KEYS: Partial<Record<string, TranslationKey>> = {
-  transformers: "resultsTagTransformers",
-  NLP: "resultsTagNlp",
-  "attention-mechanism": "resultsTagAttentionMechanism",
-  ethics: "resultsTagEthics",
-  LLM: "resultsTagLlm",
-  "responsible-AI": "resultsTagResponsibleAi",
-  efficiency: "resultsTagEfficiency",
-  training: "resultsTagTraining",
-  "deep-learning": "resultsTagDeepLearning",
-  multimodal: "resultsTagMultimodal",
-  "vision-language": "resultsTagVisionLanguage",
-  "cross-attention": "resultsTagCrossAttention",
-  "federated-learning": "resultsTagFederatedLearning",
-  healthcare: "resultsTagHealthcare",
-  privacy: "resultsTagPrivacy",
-};
+function adaptPaper(paper: ApiPaper, index: number): DisplayPaper {
+  // Derive a short display date from the ISO string
+  const displayDate = paper.date
+    ? new Date(paper.date).toLocaleDateString("en-US", { year: "numeric", month: "short" })
+    : "Unknown date";
 
-function ResultsPageContent() {
+  // Relevance score formatted as a metric
+  const score = Math.round(paper.relevance_score);
+  const metrics = `Score: ${score}`;
+
+  // Use first 3 authors max to keep the meta line readable
+  const authorStr =
+    paper.authors.length > 0
+      ? paper.authors.slice(0, 3).join(", ") + (paper.authors.length > 3 ? " et al." : "")
+      : "Unknown authors";
+
+  // Simple tag extraction from title words (fallback since arXiv has no tags)
+  const stopWords = new Set(["a", "an", "the", "of", "in", "for", "and", "on", "with", "to", "is"]);
+  const tags = paper.title
+    .split(/\s+/)
+    .filter((w) => w.length > 4 && !stopWords.has(w.toLowerCase()))
+    .slice(0, 4)
+    .map((w) => w.replace(/[^a-zA-Z0-9]/g, ""));
+
+  // Badge: mark top-ranked papers as Trending
+  const badges: string[] = score >= 30 ? ["Trending"] : [];
+
+  return {
+    id: `paper-${index}`,
+    title: paper.title,
+    authors: authorStr,
+    date: displayDate,
+    metrics,
+    insight: paper.summary || paper.abstract.slice(0, 300),
+    badges,
+    tags: tags.length > 0 ? tags : ["Research"],
+    pdf: paper.pdf,
+    abstract: paper.abstract,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function ResultsPage() {
   const { t, format, locale, voicePreference } = useAppPreferences();
   const searchParams = useSearchParams();
   const query = searchParams.get("q");
   const shownQuery = query && query.trim().length > 0 ? query : "machine learning";
+
+  // ── State ──────────────────────────────────────────────────────────────────
   const [showFilters, setShowFilters] = useState(true);
   const [speakingPaperId, setSpeakingPaperId] = useState<string | null>(null);
   const [paperSummaries, setPaperSummaries] = useState<Record<string, string>>({});
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const fallbackAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  const localizedPapers = useMemo(() => {
-    return papers.map((paper) => {
-      const titleKey = RESULTS_PAPER_TITLE_KEYS[paper.id];
-      const insightKey = RESULTS_PAPER_INSIGHT_KEYS[paper.id];
-
-      return {
-        ...paper,
-        title: titleKey ? t(titleKey) : paper.title,
-        insight: insightKey ? t(insightKey) : paper.insight,
-        tags: paper.tags.map((tag) => {
-          const tagKey = RESULTS_TAG_KEYS[tag];
-          return tagKey ? t(tagKey) : tag.replaceAll("-", " ");
-        }),
-      };
-    });
-  }, [t]);
+  // ── Real API data ──────────────────────────────────────────────────────────
+  const [papers, setPapers] = useState<DisplayPaper[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      return;
-    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
 
-    const syncVoices = () => {
-      const nextVoices = window.speechSynthesis.getVoices();
-      setAvailableVoices(nextVoices);
-    };
+    searchPapers(shownQuery)
+      .then((res) => {
+        if (!cancelled) {
+          setPapers(res.papers.map(adaptPaper));
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Search failed.");
+          setLoading(false);
+        }
+      });
 
+    return () => { cancelled = true; };
+  }, [shownQuery]);
+
+  // ── Speech synthesis (unchanged from original) ────────────────────────────
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    const syncVoices = () => setAvailableVoices(window.speechSynthesis.getVoices());
     syncVoices();
     window.speechSynthesis.addEventListener("voiceschanged", syncVoices);
 
@@ -110,178 +140,85 @@ function ResultsPageContent() {
         window.speechSynthesis.removeEventListener("voiceschanged", syncVoices);
         window.speechSynthesis.cancel();
       }
-
       fallbackAudioRef.current?.pause();
       fallbackAudioRef.current = null;
     };
   }, []);
 
   const getSpeechLanguage = (text: string) => {
-    if (/[\u0600-\u06FF]/.test(text)) {
-      return "ar";
-    }
-
-    if (locale === "fr") {
-      return "fr-FR";
-    }
-
-    if (locale === "ar") {
-      return "ar-SA";
-    }
-
+    if (/[\u0600-\u06FF]/.test(text)) return "ar";
+    if (locale === "fr") return "fr-FR";
+    if (locale === "ar") return "ar-SA";
     return "en-US";
   };
 
   const pickVoiceByPreference = (voices: SpeechSynthesisVoice[], lang: string) => {
     const normalizedLang = lang.toLowerCase();
     const primaryLanguage = normalizedLang.split("-")[0];
-    const femaleHints = [
-      "female",
-      "woman",
-      "girl",
-      "zira",
-      "samantha",
-      "victoria",
-      "hazel",
-      "jenny",
-      "aria",
-      "ava",
-      "emma",
-      "olivia",
-      "amelie",
-      "marie",
-      "laila",
-      "hanan",
-      "mouna",
-    ];
+    const femaleHints = ["female","woman","girl","zira","samantha","victoria","hazel","jenny","aria","ava","emma","olivia","amelie","marie","laila","hanan","mouna"];
+    const maleHints = ["male","man","boy","david","daniel","george","thomas","alex","james","oliver","hassan","karim","nizar"];
+    const sameLanguage = voices.filter((v) => v.lang.toLowerCase().startsWith(primaryLanguage));
 
-    const maleHints = [
-      "male",
-      "man",
-      "boy",
-      "david",
-      "daniel",
-      "george",
-      "thomas",
-      "alex",
-      "james",
-      "oliver",
-      "hassan",
-      "karim",
-      "nizar",
-    ];
-
-    const sameLanguage = voices.filter((voice) =>
-      voice.lang.toLowerCase().startsWith(primaryLanguage),
-    );
-
-    // Arabic should always prioritize Arabic voices first regardless of gender preference.
     if (primaryLanguage === "ar" && sameLanguage.length > 0) {
       if (voicePreference === "female") {
-        const femaleArabic = sameLanguage.find((voice) => {
-          const meta = `${voice.name} ${voice.voiceURI}`.toLowerCase();
-          return femaleHints.some((hint) => meta.includes(hint));
-        });
-
-        if (femaleArabic) {
-          return femaleArabic;
-        }
+        const f = sameLanguage.find((v) => femaleHints.some((h) => `${v.name} ${v.voiceURI}`.toLowerCase().includes(h)));
+        if (f) return f;
       }
-
       if (voicePreference === "male") {
-        const maleArabic = sameLanguage.find((voice) => {
-          const meta = `${voice.name} ${voice.voiceURI}`.toLowerCase();
-          return maleHints.some((hint) => meta.includes(hint));
-        });
-
-        if (maleArabic) {
-          return maleArabic;
-        }
+        const m = sameLanguage.find((v) => maleHints.some((h) => `${v.name} ${v.voiceURI}`.toLowerCase().includes(h)));
+        if (m) return m;
       }
-
       return sameLanguage[0];
     }
-
     if (voicePreference === "female") {
-      const femaleInLanguage = sameLanguage.find((voice) => {
-        const meta = `${voice.name} ${voice.voiceURI}`.toLowerCase();
-        return femaleHints.some((hint) => meta.includes(hint));
-      });
-
-      if (femaleInLanguage) {
-        return femaleInLanguage;
-      }
+      const f = sameLanguage.find((v) => femaleHints.some((h) => `${v.name} ${v.voiceURI}`.toLowerCase().includes(h)));
+      if (f) return f;
     }
-
     if (voicePreference === "male") {
-      const maleInLanguage = sameLanguage.find((voice) => {
-        const meta = `${voice.name} ${voice.voiceURI}`.toLowerCase();
-        return maleHints.some((hint) => meta.includes(hint));
-      });
-
-      if (maleInLanguage) {
-        return maleInLanguage;
-      }
+      const m = sameLanguage.find((v) => maleHints.some((h) => `${v.name} ${v.voiceURI}`.toLowerCase().includes(h)));
+      if (m) return m;
     }
-
     return sameLanguage[0] ?? voices[0] ?? null;
   };
 
   const speakPaper = (paperId: string, text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      return;
-    }
-
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     const trimmed = text.trim();
-    if (!trimmed) {
-      return;
-    }
+    if (!trimmed) return;
 
     fallbackAudioRef.current?.pause();
     fallbackAudioRef.current = null;
-
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(trimmed);
     const speechLanguage = getSpeechLanguage(trimmed);
     utterance.lang = speechLanguage;
     const voicesPool = availableVoices.length > 0 ? availableVoices : window.speechSynthesis.getVoices();
-    const hasArabicVoice = voicesPool.some((voice) => voice.lang.toLowerCase().startsWith("ar"));
+    const hasArabicVoice = voicesPool.some((v) => v.lang.toLowerCase().startsWith("ar"));
 
     if (speechLanguage.startsWith("ar") && !hasArabicVoice) {
       const shortText = trimmed.length > 220 ? `${trimmed.slice(0, 220)}...` : trimmed;
-      const fallbackUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ar&q=${encodeURIComponent(shortText)}`;
-      const audio = new Audio(fallbackUrl);
-      audio.onended = () => setSpeakingPaperId((current) => (current === paperId ? null : current));
-      audio.onerror = () => setSpeakingPaperId((current) => (current === paperId ? null : current));
-
+      const audio = new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ar&q=${encodeURIComponent(shortText)}`);
+      audio.onended = () => setSpeakingPaperId((c) => (c === paperId ? null : c));
+      audio.onerror = () => setSpeakingPaperId((c) => (c === paperId ? null : c));
       fallbackAudioRef.current = audio;
       setSpeakingPaperId(paperId);
-      void audio.play().catch(() => {
-        setSpeakingPaperId((current) => (current === paperId ? null : current));
-      });
+      void audio.play().catch(() => setSpeakingPaperId((c) => (c === paperId ? null : c)));
       return;
     }
 
     const preferredVoice = pickVoiceByPreference(voicesPool, speechLanguage);
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-    }
-
+    if (preferredVoice) utterance.voice = preferredVoice;
     utterance.rate = 0.95;
     utterance.pitch = 1.08;
-    utterance.onend = () => setSpeakingPaperId((current) => (current === paperId ? null : current));
-    utterance.onerror = () => setSpeakingPaperId((current) => (current === paperId ? null : current));
-
+    utterance.onend = () => setSpeakingPaperId((c) => (c === paperId ? null : c));
+    utterance.onerror = () => setSpeakingPaperId((c) => (c === paperId ? null : c));
     setSpeakingPaperId(paperId);
     window.speechSynthesis.speak(utterance);
   };
 
   const togglePaperSpeech = (paperId: string, paperText: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      return;
-    }
-
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     if (speakingPaperId === paperId) {
       window.speechSynthesis.cancel();
       fallbackAudioRef.current?.pause();
@@ -289,82 +226,47 @@ function ResultsPageContent() {
       setSpeakingPaperId(null);
       return;
     }
-
     speakPaper(paperId, paperText);
   };
 
   const handleSummaryChange = (paperId: string, summary: string) => {
     setPaperSummaries((current) => {
-      if ((current[paperId] ?? "") === summary) {
-        return current;
-      }
-
-      return {
-        ...current,
-        [paperId]: summary,
-      };
+      if ((current[paperId] ?? "") === summary) return current;
+      return { ...current, [paperId]: summary };
     });
   };
 
   const buildPaperSpeechText = (paperTitle: string, paperInsight: string) => {
-    if (locale !== "ar") {
-      return `${paperTitle}. ${paperInsight}`;
-    }
-
+    if (locale !== "ar") return `${paperTitle}. ${paperInsight}`;
     const normalizedInsight = paperInsight.trim();
     const firstSentence = normalizedInsight.split(". ")[0] ?? normalizedInsight;
-
-    return format(t("summaryQuickTemplate"), {
-      title: paperTitle,
-      firstSentence,
-    });
+    return format(t("summaryQuickTemplate"), { title: paperTitle, firstSentence });
   };
 
-  const prettyTag = (tag: string) => tag.replaceAll("-", " ");
+  // ── Derived stats (same logic as original, now from real data) ─────────────
+  const trendingShare = papers.length > 0
+    ? Math.round((papers.filter((p) => p.badges.includes("Trending")).length / papers.length) * 100)
+    : 0;
 
-  const tagCounts = localizedPapers
-    .flatMap((paper) => paper.tags)
-    .reduce<Record<string, number>>((acc, tag) => {
-      acc[tag] = (acc[tag] ?? 0) + 1;
-      return acc;
-    }, {});
+  const topTags = [...new Set(papers.flatMap((p) => p.tags))].slice(0, 6);
+  const commonInsightThemes = topTags.slice(0, 4);
 
-  const sortedTags = Object.entries(tagCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([tag]) => prettyTag(tag));
+  const recentShare = papers.length > 0
+    ? Math.round((papers.filter((p) => /2026|2025|2024/.test(p.date)).length / papers.length) * 100)
+    : 0;
 
-  const topTags = sortedTags.slice(0, 6);
-  const commonInsightThemes = sortedTags.slice(0, 4);
-
-  const trendingShare = Math.round(
-    (localizedPapers.filter((paper) => paper.badges.includes("Trending")).length / localizedPapers.length) *
-      100,
-  );
-
-  const avgMetric = Math.round(
-    localizedPapers.reduce((total, paper) => total + Number.parseInt(paper.metrics, 10), 0) /
-      localizedPapers.length,
-  );
-
-  const recentShare = Math.round(
-    (localizedPapers.filter((paper) => /2026|2025/.test(paper.date)).length / localizedPapers.length) * 100,
-  );
+  const avgScore = papers.length > 0
+    ? Math.round(papers.reduce((sum, p) => sum + Number(p.metrics.replace("Score: ", "")), 0) / papers.length)
+    : 0;
 
   const queryLower = shownQuery.toLowerCase();
-
   const dynamicLens =
-    queryLower.includes("health") || queryLower.includes("medical")
-      ? t("resultsLensClinical")
-      : queryLower.includes("vision")
-        ? t("resultsLensVision")
-        : queryLower.includes("ethic") || queryLower.includes("policy")
-          ? t("resultsLensEthics")
-          : t("resultsLensDefault");
+    queryLower.includes("health") || queryLower.includes("medical") ? t("resultsLensClinical")
+    : queryLower.includes("vision") ? t("resultsLensVision")
+    : queryLower.includes("ethic") || queryLower.includes("policy") ? t("resultsLensEthics")
+    : t("resultsLensDefault");
 
-  const trendSignal =
-    trendingShare >= 50
-      ? t("resultsTrendStrong")
-      : t("resultsTrendSteady");
+  const trendSignal = trendingShare >= 50 ? t("resultsTrendStrong") : t("resultsTrendSteady");
 
   const contentWrapClass = `${styles.contentWrap} ${showFilters ? "" : styles.contentWrapOne}`;
 
@@ -375,7 +277,6 @@ function ResultsPageContent() {
       Transformers: t("resultsTopicTransformers"),
       "Federated Learning": t("resultsTopicFederated"),
     };
-
     return map[label] ?? label;
   };
 
@@ -386,7 +287,6 @@ function ResultsPageContent() {
       "Multilingual NLP capabilities": t("resultsGapMultilingual"),
       "Cross-domain transfer learning": t("resultsGapTransfer"),
     };
-
     return map[gap] ?? gap;
   };
 
@@ -398,10 +298,10 @@ function ResultsPageContent() {
       "Computer Vision": t("resultsCategoryCv"),
       "Reinforcement Learning": t("resultsCategoryRl"),
     };
-
     return map[category] ?? category;
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <main className={styles.page}>
       <SearchHistoryTracker query={shownQuery} />
@@ -416,7 +316,9 @@ function ResultsPageContent() {
               <SearchIcon className={styles.queryIcon} />
               {shownQuery}
             </p>
-            <p className={styles.countLine}>{localizedPapers.length} {t("resultsFoundSuffix")}</p>
+            <p className={styles.countLine}>
+              {loading ? "Searching…" : error ? "Error" : `${papers.length} ${t("resultsFoundSuffix")}`}
+            </p>
           </div>
         </div>
         <div className={styles.topActions}>
@@ -429,7 +331,7 @@ function ResultsPageContent() {
             <button
               type="button"
               className={`${styles.panelToggleButton} ${showFilters ? styles.panelToggleButtonActive : ""}`}
-              onClick={() => setShowFilters((value) => !value)}
+              onClick={() => setShowFilters((v) => !v)}
               aria-pressed={showFilters}
               aria-label={showFilters ? t("resultsHideFiltersAria") : t("resultsShowFiltersAria")}
             >
@@ -440,67 +342,56 @@ function ResultsPageContent() {
       </header>
 
       <section className={contentWrapClass}>
-        {showFilters && <aside className={styles.leftPanel}>
-          <h2>
-            <FilterIcon className={styles.sectionIcon} />
-            {t("resultsFilters")}
-          </h2>
-
-          <div className={styles.filterGroup}>
-            <h3>
-              <TopicIcon className={styles.groupIcon} /> {t("resultsTrendingTopics")}
-            </h3>
-            <ul>
-              {trendingTopics.map((topic) => (
-                <li key={topic.label}>
-                  {topicLabel(topic.label)} <span>{topic.count}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <h3>
-              <GapIcon className={styles.groupIcon} /> {t("resultsResearchGaps")}
-            </h3>
-            <div className={styles.gapBox}>
-              {researchGaps.map((gap) => (
-                <p key={gap}>{gapLabel(gap)}</p>
-              ))}
+        {showFilters && (
+          <aside className={styles.leftPanel}>
+            <h2>
+              <FilterIcon className={styles.sectionIcon} />
+              {t("resultsFilters")}
+            </h2>
+            <div className={styles.filterGroup}>
+              <h3><TopicIcon className={styles.groupIcon} /> {t("resultsTrendingTopics")}</h3>
+              <ul>
+                {trendingTopics.map((topic) => (
+                  <li key={topic.label}>{topicLabel(topic.label)} <span>{topic.count}</span></li>
+                ))}
+              </ul>
             </div>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <h3>
-              <CalendarIcon className={styles.groupIcon} /> {t("resultsPublicationYear")}
-            </h3>
-            <ul className={styles.checkboxList}>
-              {publicationYears.map((year) => (
-                <li key={year}>
-                  <input id={`y${year}`} type="checkbox" />
-                  <label htmlFor={`y${year}`}>{year}</label>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <h3>{t("resultsCategories")}</h3>
-            <ul className={styles.checkboxList}>
-              {categories.map((category) => {
-                const id = `c-${category.toLowerCase().replaceAll(" ", "-")}`;
-                return (
-                  <li key={category}>
-                    <input id={id} type="checkbox" />
-                    <label htmlFor={id}>{categoryLabel(category)}</label>
+            <div className={styles.filterGroup}>
+              <h3><GapIcon className={styles.groupIcon} /> {t("resultsResearchGaps")}</h3>
+              <div className={styles.gapBox}>
+                {researchGaps.map((gap) => <p key={gap}>{gapLabel(gap)}</p>)}
+              </div>
+            </div>
+            <div className={styles.filterGroup}>
+              <h3><CalendarIcon className={styles.groupIcon} /> {t("resultsPublicationYear")}</h3>
+              <ul className={styles.checkboxList}>
+                {publicationYears.map((year) => (
+                  <li key={year}>
+                    <input id={`y${year}`} type="checkbox" />
+                    <label htmlFor={`y${year}`}>{year}</label>
                   </li>
-                );
-              })}
-            </ul>
-          </div>
-        </aside>}
+                ))}
+              </ul>
+            </div>
+            <div className={styles.filterGroup}>
+              <h3>{t("resultsCategories")}</h3>
+              <ul className={styles.checkboxList}>
+                {categories.map((category) => {
+                  const id = `c-${category.toLowerCase().replaceAll(" ", "-")}`;
+                  return (
+                    <li key={category}>
+                      <input id={id} type="checkbox" />
+                      <label htmlFor={id}>{categoryLabel(category)}</label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </aside>
+        )}
 
         <section className={styles.centerPanel}>
+          {/* ── Topic summary card ── */}
           <article className={styles.topicSummaryCard}>
             <div className={styles.topicSummaryHeader}>
               <p className={styles.topicSummaryEyebrow}>{t("resultsSummaryEyebrow")}</p>
@@ -517,11 +408,10 @@ function ResultsPageContent() {
               {format(t("resultsSummaryLeadTemplate"), {
                 trendSignal,
                 trendingShare,
-                avgMetric,
+                avgMetric: avgScore,
                 recentShare,
               })}
             </p>
-
             <p className={styles.topicSummaryDetail}>
               {format(t("resultsSummaryDetailTemplate"), {
                 themes: commonInsightThemes.join(", "),
@@ -530,13 +420,45 @@ function ResultsPageContent() {
               })}
             </p>
             <div className={styles.topicSummaryTags}>
-              {topTags.map((tag) => (
-                <span key={tag}>{tag}</span>
-              ))}
+              {topTags.map((tag) => <span key={tag}>{tag}</span>)}
             </div>
           </article>
 
-          {localizedPapers.map((paper) => (
+          {/* ── Loading state ── */}
+          {loading && (
+            <article className={styles.paperCard} style={{ textAlign: "center", padding: "40px" }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: "16px" }}>
+                ⏳ Fetching and summarizing papers for <strong>{shownQuery}</strong>…
+              </p>
+              <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "8px" }}>
+                This takes 10–30 seconds while the AI summarizes each paper.
+              </p>
+            </article>
+          )}
+
+          {/* ── Error state ── */}
+          {!loading && error && (
+            <article className={styles.paperCard} style={{ padding: "32px" }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
+                ⚠️ Could not load papers: {error}
+              </p>
+              <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "8px" }}>
+                Make sure the backend is running at <code>http://localhost:8000</code> and your GROQ_API_KEY is set in <code>backend/.env</code>.
+              </p>
+            </article>
+          )}
+
+          {/* ── Empty state ── */}
+          {!loading && !error && papers.length === 0 && (
+            <article className={styles.paperCard} style={{ padding: "32px" }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
+                No papers found for <strong>{shownQuery}</strong>. Try a different topic.
+              </p>
+            </article>
+          )}
+
+          {/* ── Real paper cards ── */}
+          {papers.map((paper) => (
             <article key={paper.id} className={styles.paperCard}>
               <div className={styles.cardTopRow}>
                 <div className={styles.badgeRow}>
@@ -582,7 +504,7 @@ function ResultsPageContent() {
 
               <h3>{paper.title}</h3>
               <p className={styles.metaLine}>
-                {paper.authors} - {paper.metrics} - {paper.date}
+                {paper.authors} • {paper.metrics} • {paper.date}
               </p>
 
               <div className={styles.insightBox}>
@@ -591,9 +513,7 @@ function ResultsPageContent() {
               </div>
 
               <div className={styles.tagRow}>
-                {paper.tags.map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
+                {paper.tags.map((tag) => <span key={tag}>{tag}</span>)}
               </div>
 
               <PaperSummaryActions
@@ -603,26 +523,30 @@ function ResultsPageContent() {
                 onSummaryChange={handleSummaryChange}
               />
 
-              <button type="button" className={styles.paperButton}>
-                {t("resultsViewPaper")}
-              </button>
+              {/* View Paper button → opens the real PDF */}
+              {paper.pdf ? (
+                <a
+                  href={paper.pdf}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.paperButton}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}
+                >
+                  {t("resultsViewPaper")}
+                </a>
+              ) : (
+                <button type="button" className={styles.paperButton} disabled>
+                  {t("resultsViewPaper")}
+                </button>
+              )}
+
               <FollowTopicButton topic={paper.tags[0] ?? paper.title} />
             </article>
           ))}
         </section>
-
       </section>
 
       <SearchCompleteToast query={shownQuery} />
     </main>
   );
 }
-
-export default function ResultsPage() {
-  return (
-    <Suspense fallback={<main className={styles.page} />}>
-      <ResultsPageContent />
-    </Suspense>
-  );
-}
-
