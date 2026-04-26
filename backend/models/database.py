@@ -7,13 +7,14 @@ Base = declarative_base()
 class Paper(Base):
     __tablename__ = "papers"
 
-    id = Column(Integer, primary_key=True)
-    title = Column(Text)
+    id       = Column(Integer, primary_key=True)
+    title    = Column(Text)
     abstract = Column(Text)
-    authors = Column(Text)
-    date = Column(Text)
-    pdf = Column(Text)
-    source = Column(Text)
+    authors  = Column(Text)
+    date     = Column(Text)
+    pdf      = Column(Text)
+    source   = Column(Text)
+    summary  = Column(Text, nullable=True)   # ← added
 
 Base.metadata.create_all(engine)
 
