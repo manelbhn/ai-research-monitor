@@ -1,84 +1,63 @@
-import requests
-from models.database import Session, Paper
-from rapidfuzz import fuzz
+import requests, time, urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-def fetch_arxiv(topic, date_from=None, date_to=None):
-    url = f"http://export.arxiv.org/api/query?search_query=all:{topic}&start=0&max_results=20"
+def fetch_arxiv(topic, date_from=None, date_to=None, max_pages=3, page_size=100):
+    all_papers = []
 
-    response = requests.get(url)
-    root = ET.fromstring(response.content)
+    query = urllib.parse.quote(f"all:{topic}")
 
-    papers = []
+    for page in range(max_pages):
+        start = page * page_size
 
-    for entry in root.findall("{http://www.w3.org/2005/Atom}entry"):
-        title = entry.find("{http://www.w3.org/2005/Atom}title").text
-        abstract = entry.find("{http://www.w3.org/2005/Atom}summary").text
-        published = entry.find("{http://www.w3.org/2005/Atom}published").text
+        url = (
+            f"http://export.arxiv.org/api/query?"
+            f"search_query={query}"
+            f"&start={start}"
+            f"&max_results={page_size}"
+            f"&sortBy=submittedDate"
+            f"&sortOrder=descending"
+        )
 
-        authors = [
-            author.find("{http://www.w3.org/2005/Atom}name").text
-            for author in entry.findall("{http://www.w3.org/2005/Atom}author")
-        ]
+        response = requests.get(url)
 
-        pdf_link = ""
-        for link in entry.findall("{http://www.w3.org/2005/Atom}link"):
-            if link.attrib.get("type") == "application/pdf":
-                pdf_link = link.attrib.get("href")
-
-        paper_date = datetime.strptime(published, "%Y-%m-%dT%H:%M:%SZ")
-
-        if date_from and paper_date < datetime.strptime(date_from, "%Y-%m-%d"):
+        if response.status_code != 200 or not response.text.startswith("<?xml"):
+            print("Invalid response from arXiv")
             continue
 
-        if date_to and paper_date > datetime.strptime(date_to, "%Y-%m-%d"):
-            continue
+        root = ET.fromstring(response.content)
 
-        papers.append({
-            "title": title.strip(),
-            "abstract": abstract.strip(),
-            "authors": authors,
-            "date": published,
-            "pdf": pdf_link,
-            "source": "arxiv"
-        })
+        for entry in root.findall("{http://www.w3.org/2005/Atom}entry"):
+            try:
+                published = entry.find("{http://www.w3.org/2005/Atom}published").text
+                paper_date = datetime.strptime(published, "%Y-%m-%dT%H:%M:%SZ")
 
-    papers = deduplicate(papers)
-    save_papers(papers)
-    return papers
+                if date_from and paper_date < datetime.strptime(date_from, "%Y-%m-%d"):
+                    continue
+                if date_to and paper_date > datetime.strptime(date_to, "%Y-%m-%d"):
+                    continue
 
-def deduplicate(papers):
-    unique = []
+                paper_id = entry.find("{http://www.w3.org/2005/Atom}id").text.split("/")[-1]
 
-    for paper in papers:
-        duplicate = False
-        for u in unique:
-            if fuzz.ratio(paper["title"], u["title"]) > 90:
-                duplicate = True
-                break
+                paper = {
+                    "id": paper_id,
+                    "title": entry.find("{http://www.w3.org/2005/Atom}title").text.strip(),
+                    "abstract": entry.find("{http://www.w3.org/2005/Atom}summary").text.strip(),
+                    "authors": [
+                        a.find("{http://www.w3.org/2005/Atom}name").text
+                        for a in entry.findall("{http://www.w3.org/2005/Atom}author")
+                    ],
+                    "publication_date": published,
+                    "pdf_link": f"https://arxiv.org/pdf/{paper_id}.pdf",
+                    "source": "arxiv",
+                    "citation_count": 0
+                }
 
-        if not duplicate:
-            unique.append(paper)
+                all_papers.append(paper)
 
-    return unique
+            except Exception as e:
+                print("Parsing error:", e)
 
-def save_papers(papers):
-    session = Session()
+        time.sleep(3)
 
-    for p in papers:
-        exists = session.query(Paper).filter_by(title=p["title"]).first()
-
-        if not exists:
-            paper = Paper(
-                title=p["title"],
-                abstract=p["abstract"],
-                authors=", ".join(p["authors"]),
-                date=p["date"],
-                pdf=p["pdf"],
-                source=p["source"]
-            )
-            session.add(paper)
-
-    session.commit()
-    session.close()
+    return all_papers
