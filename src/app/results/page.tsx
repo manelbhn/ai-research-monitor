@@ -25,7 +25,7 @@ import PaperSummaryActions from "@/components/second-page/results/PaperSummaryAc
 import SearchCompleteToast from "@/components/second-page/results/SearchCompleteToast";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import styles from "./results.module.css";
 import { searchPapers, type ApiPaper } from "@/lib/api";
 
@@ -87,7 +87,7 @@ function adaptPaper(paper: ApiPaper, index: number): DisplayPaper {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function ResultsPage() {
+function ResultsPageContent() {
   const { t, format, locale, voicePreference } = useAppPreferences();
   const searchParams = useSearchParams();
   const query = searchParams.get("q");
@@ -548,5 +548,13 @@ export default function ResultsPage() {
 
       <SearchCompleteToast query={shownQuery} />
     </main>
+  );
+}
+
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={<main className={styles.page} />}>
+      <ResultsPageContent />
+    </Suspense>
   );
 }
