@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import robotMascot from "../robot-wait.png";
+import siteLogo from "../logo.png";
+import amaniAvatar from "../amani-removebg-preview.png";
+import chirazAvatar from "../chiraz-removebg-preview.png";
+import hindAvatar from "../hind-removebg-preview.png";
+import manelAvatar from "../manel-removebg-preview.png";
+import selsabilaAvatar from "../selsabila-removebg-preview.png";
 import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
 import type { Locale, ThemeMode, VoicePreference } from "@/lib/i18n";
 import styles from "./waitlist.module.css";
@@ -14,11 +20,15 @@ type WaitlistResponse = {
 };
 
 const WEBSITE_IS_LAUNCHED = false;
+const ALGERIA_MOBILE_PHONE_INPUT_PATTERN = "^(?:\\+213|0)(?:5|6|7)\\d{8}$";
+const EMAIL_INPUT_PATTERN = "^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$";
+const TEAM_AVATARS = [amaniAvatar, chirazAvatar, manelAvatar, hindAvatar, selsabilaAvatar] as const;
 
 type WaitlistCopy = {
   navAbout: string;
   navFeatures: string;
   navBenefits: string;
+  navTeam: string;
   navRegister: string;
   kicker: string;
   title: string;
@@ -36,6 +46,9 @@ type WaitlistCopy = {
   benefitsEyebrow: string;
   benefitsTitle: string;
   benefits: ReadonlyArray<string>;
+  teamEyebrow: string;
+  teamTitle: string;
+  teamMembers: ReadonlyArray<{ name: string; role: string }>;
   registerEyebrow: string;
   registerTitle: string;
   registerSubtitle: string;
@@ -48,6 +61,7 @@ type WaitlistCopy = {
   companyNamePlaceholder: string;
   phoneNumber: string;
   phoneNumberPlaceholder: string;
+  phoneNumberTitle: string;
   role: string;
   roles: ReadonlyArray<{ value: string; label: string }>;
   focus: string;
@@ -66,6 +80,17 @@ type WaitlistCopy = {
   mascotPriorityAccess: string;
   mascotLaunchSoon: string;
   mascotExclusiveAccess: string;
+  footerTitle: string;
+  footerSubtitle: string;
+  footerQuickLinksTitle: string;
+  footerContactTitle: string;
+  footerEmailLabel: string;
+  footerPhoneLabel: string;
+  footerLocationLabel: string;
+  footerEmailValue: string;
+  footerPhoneValue: string;
+  footerLocationValue: string;
+  footerLegal: string;
 };
 
 const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
@@ -73,6 +98,7 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     navAbout: "About",
     navFeatures: "Features",
     navBenefits: "Benefits",
+    navTeam: "Team",
     navRegister: "Register",
     kicker: "Limited Edition Access",
     title: "Join the launch waitlist for our AI research platform",
@@ -113,6 +139,15 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
       "Limited-edition founder badge on your profile",
       "First access to gap-detection tools and trend alerts",
     ],
+    teamEyebrow: "Team",
+    teamTitle: "Meet the core team",
+    teamMembers: [
+      { name: "Amani Boulahia", role: "AI Developer" },
+      { name: "Chiraz Benakmoum", role: "Backend Developer" },
+      { name: "Manel Benhanifia", role: "Leader + Backend Developer" },
+      { name: "Yousra Hind Bennabi", role: "Backend Developer" },
+      { name: "Lyna Selsabila Remadi", role: "Frontend Developer" },
+    ],
     registerEyebrow: "Register",
     registerTitle: "Reserve your slot",
     registerSubtitle: "Spots are limited for the first launch wave.",
@@ -124,7 +159,8 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     companyName: "Company name (optional)",
     companyNamePlaceholder: "Your company",
     phoneNumber: "Phone number (optional)",
-    phoneNumberPlaceholder: "+1 555 123 4567",
+    phoneNumberPlaceholder: "+213550123456 or 0550123456",
+    phoneNumberTitle: "+213XXXXXXXXX or 0XXXXXXXXX (Algerian mobile number)",
     role: "You are",
     roles: [
       { value: "student", label: "Student" },
@@ -149,11 +185,23 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     mascotPriorityAccess: "Priority access",
     mascotLaunchSoon: "Launching soon",
     mascotExclusiveAccess: "Exclusive invite",
+    footerTitle: "Contact",
+    footerSubtitle: "Reach us for collaborations, early-access questions, or support.",
+    footerQuickLinksTitle: "Quick links",
+    footerContactTitle: "Contact info",
+    footerEmailLabel: "Email",
+    footerPhoneLabel: "Phone",
+    footerLocationLabel: "Location",
+    footerEmailValue: "papero2s05@gmail.com",
+    footerPhoneValue: "+213 ### ## ## ##",
+    footerLocationValue: "Algiers, Algeria",
+    footerLegal: "© {year} Gap Bridge. All rights reserved.",
   },
   fr: {
     navAbout: "A propos",
     navFeatures: "Fonctionnalites",
     navBenefits: "Avantages",
+    navTeam: "Equipe",
     navRegister: "Inscription",
     kicker: "Acces edition limitee",
     title: "Rejoignez la liste d'attente de lancement de notre plateforme IA",
@@ -194,6 +242,15 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
       "Badge fondateur edition limitee sur votre profil",
       "Acces prioritaire aux outils de detection de lacunes et alertes de tendances",
     ],
+    teamEyebrow: "Equipe",
+    teamTitle: "Rencontrez l'equipe principale",
+    teamMembers: [
+      { name: "Membre 1", role: "Responsable produit" },
+      { name: "Membre 2", role: "Ingenieur IA" },
+      { name: "Membre 3", role: "Chercheur scientifique" },
+      { name: "Membre 4", role: "Developpeur full-stack" },
+      { name: "Membre 5", role: "Croissance et partenariats" },
+    ],
     registerEyebrow: "Inscription",
     registerTitle: "Reservez votre place",
     registerSubtitle: "Les places sont limitees pour la premiere vague de lancement.",
@@ -205,7 +262,8 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     companyName: "Nom de l'entreprise (optionnel)",
     companyNamePlaceholder: "Votre entreprise",
     phoneNumber: "Numero de telephone (optionnel)",
-    phoneNumberPlaceholder: "+33 6 12 34 56 78",
+    phoneNumberPlaceholder: "+213550123456 ou 0550123456",
+    phoneNumberTitle: "+213XXXXXXXXX ou 0XXXXXXXXX (numero mobile algerien)",
     role: "Vous etes",
     roles: [
       { value: "student", label: "Etudiant" },
@@ -230,11 +288,23 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     mascotPriorityAccess: "Acces prioritaire",
     mascotLaunchSoon: "Lancement bientot",
     mascotExclusiveAccess: "Invitation exclusive",
+    footerTitle: "Contact",
+    footerSubtitle: "Ecrivez-nous pour les collaborations, l'acces anticipe ou le support.",
+    footerQuickLinksTitle: "Liens rapides",
+    footerContactTitle: "Coordonnees",
+    footerEmailLabel: "Email",
+    footerPhoneLabel: "Telephone",
+    footerLocationLabel: "Localisation",
+    footerEmailValue: "contact@gap-bridge.ai",
+    footerPhoneValue: "+213 550 12 34 56",
+    footerLocationValue: "Alger, Algerie",
+    footerLegal: "© {year} Gap Bridge. Tous droits reserves.",
   },
   ar: {
     navAbout: "حول الموقع",
     navFeatures: "المميزات",
     navBenefits: "الفوائد",
+    navTeam: "الفريق",
     navRegister: "التسجيل",
     kicker: "وصول بنسخة محدودة",
     title: "انضم الى قائمة انتظار الاطلاق لمنصتنا البحثية بالذكاء الاصطناعي",
@@ -275,6 +345,15 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
       "شارة مؤسس محدودة على ملفك الشخصي",
       "وصول مبكر إلى ادوات كشف الفجوات وتنبيهات الاتجاهات",
     ],
+    teamEyebrow: "الفريق",
+    teamTitle: "تعرف على الفريق الاساسي",
+    teamMembers: [
+      { name: "العضو 1", role: "قائد المنتج" },
+      { name: "العضو 2", role: "مهندس ذكاء اصطناعي" },
+      { name: "العضو 3", role: "باحث علمي" },
+      { name: "العضو 4", role: "مطور ويب متكامل" },
+      { name: "العضو 5", role: "النمو والشراكات" },
+    ],
     registerEyebrow: "التسجيل",
     registerTitle: "احجز مكانك",
     registerSubtitle: "الاماكن محدودة في دفعة الاطلاق الاولى.",
@@ -286,7 +365,8 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     companyName: "اسم الشركة (اختياري)",
     companyNamePlaceholder: "اسم شركتك",
     phoneNumber: "رقم الهاتف (اختياري)",
-    phoneNumberPlaceholder: "+212 6 12 34 56 78",
+    phoneNumberPlaceholder: "+213550123456 او 0550123456",
+    phoneNumberTitle: "+213XXXXXXXXX او 0XXXXXXXXX (رقم هاتف جزائري)",
     role: "انت",
     roles: [
       { value: "student", label: "طالب" },
@@ -311,6 +391,17 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     mascotPriorityAccess: "وصول اولوي",
     mascotLaunchSoon: "الاطلاق قريبا",
     mascotExclusiveAccess: "دعوة حصرية",
+    footerTitle: "تواصل معنا",
+    footerSubtitle: "تواصل معنا للتعاون، او استفسارات الوصول المبكر، او الدعم.",
+    footerQuickLinksTitle: "روابط سريعة",
+    footerContactTitle: "بيانات التواصل",
+    footerEmailLabel: "البريد الالكتروني",
+    footerPhoneLabel: "الهاتف",
+    footerLocationLabel: "الموقع",
+    footerEmailValue: "contact@gap-bridge.ai",
+    footerPhoneValue: "+213 550 12 34 56",
+    footerLocationValue: "الجزائر العاصمة، الجزائر",
+    footerLegal: "© {year} Gap Bridge. جميع الحقوق محفوظة.",
   },
 };
 
@@ -327,7 +418,11 @@ function localizeWaitlistMessage(message: string, copy: WaitlistCopy): string {
     return copy.msgServerError;
   }
 
-  if (message === "Please provide a valid name." || message === "Please provide a valid email address.") {
+  if (
+    message === "Please provide a valid name."
+    || message === "Please provide a valid email address."
+    || message === "Please provide a valid Algerian phone number."
+  ) {
     return copy.msgCouldNotJoin;
   }
 
@@ -345,6 +440,7 @@ export default function WaitlistPage() {
     setVoicePreference,
   } = useAppPreferences();
   const copy = WAITLIST_COPY[locale];
+  const currentYear = new Date().getFullYear();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement | null>(null);
   const [name, setName] = useState("");
@@ -441,16 +537,38 @@ export default function WaitlistPage() {
     setExploreNotice(null);
   }, [locale]);
 
+  const heroMascotVisual = (
+    <div className={styles.heroVisual}>
+      <div className={styles.visualFrame}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={robotMascot.src} alt="Robot mascot" className={styles.mascotImg} />
+        <span className={`${styles.mascotTag} ${styles.mascotTagTopRight}`}>
+          <span className={styles.mascotTagDot} />
+          {copy.mascotExclusiveAccess}
+        </span>
+        <span className={`${styles.mascotTag} ${styles.mascotTagBottomLeft}`}>
+          <span className={styles.mascotTagDot} />
+          {copy.mascotFounderBadge}
+        </span>
+        <span className={`${styles.mascotTag} ${styles.mascotTagBottomRight}`}>
+          <span className={styles.mascotTagDot} />
+          {copy.mascotPriorityAccess}
+        </span>
+        <span className={`${styles.mascotTag} ${styles.mascotTagEdge}`}>
+          <span className={styles.mascotTagDot} />
+          {copy.mascotLaunchSoon}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <main className={styles.page}>
       <header className={styles.navbar}>
         <div className={styles.navbarInner}>
-          <Link href="/" className={styles.navbarBrand}>
-            <span className={styles.brandMark} aria-hidden="true">
-              <svg viewBox="0 0 24 24" className={styles.brandIcon}>
-                <path d="M12 3L14.2 8.1L19.4 10.2L14.2 12.4L12 17.5L9.8 12.4L4.6 10.2L9.8 8.1L12 3Z" />
-              </svg>
-            </span>
+          <Link href="/waitlist" className={styles.navbarBrand}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={siteLogo.src} alt="" className={styles.brandLogo} aria-hidden="true" />
             <span className={styles.brandText}>{t("homeBadge")}</span>
           </Link>
 
@@ -477,6 +595,15 @@ export default function WaitlistPage() {
                 <path d="M22 4L12 14.01l-3-3" />
               </svg>
               <span>{copy.navBenefits}</span>
+            </a>
+            <a href="#team" className={styles.menuLink}>
+              <svg viewBox="0 0 24 24" className={styles.navIcon} aria-hidden="true">
+                <circle cx="8" cy="8" r="3" />
+                <circle cx="16.5" cy="9" r="2.5" />
+                <path d="M2.5 20V19A5 5 0 0 1 7.5 14H8.5A5 5 0 0 1 13.5 19V20" />
+                <path d="M13 20V19.5A4 4 0 0 1 17 15.5H17.5A4 4 0 0 1 21.5 19.5V20" />
+              </svg>
+              <span>{copy.navTeam}</span>
             </a>
             <a href="#register" className={styles.menuLink}>
               <svg viewBox="0 0 24 24" className={styles.navIcon} aria-hidden="true">
@@ -560,7 +687,7 @@ export default function WaitlistPage() {
             <p className={styles.kicker}>{copy.kicker}</p>
             <h1 className={styles.title}>{copy.title}</h1>
             <p className={styles.subtitle}>{copy.subtitle}</p>
-
+            <div className={styles.heroVisualMobile}>{heroMascotVisual}</div>
 
             <div className={styles.heroActions}>
               <a href="#register" className={styles.primaryButton}>
@@ -578,29 +705,7 @@ export default function WaitlistPage() {
             {exploreNotice && <p className={styles.launchNotice}>{exploreNotice}</p>}
           </div>
 
-          <div className={styles.heroVisual}>
-            <div className={styles.visualFrame}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={robotMascot.src} alt="Robot mascot" className={styles.mascotImg} />
-              <span className={styles.mascotTag} style={{ top: "24%", right: "-8%" }}>
-                <span className={styles.mascotTagDot} />
-                {copy.mascotExclusiveAccess}
-              </span>
-              <span className={styles.mascotTag} style={{ bottom: "20%", left: "-6%" }}>
-                <span className={styles.mascotTagDot} />
-                {copy.mascotFounderBadge}
-              </span>
-              <span className={styles.mascotTag} style={{ bottom: "-4%", right: "-2%" }}>
-                <span className={styles.mascotTagDot} />
-                {copy.mascotPriorityAccess}
-              </span>
-              <span className={`${styles.mascotTag} ${styles.mascotTagEdge}`}>
-                <span className={styles.mascotTagDot} />
-                {copy.mascotLaunchSoon}
-              </span>
-
-            </div>
-          </div>
+          <div className={styles.heroVisualDesktop}>{heroMascotVisual}</div>
         </div>
       </section>
 
@@ -690,6 +795,10 @@ export default function WaitlistPage() {
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder={copy.emailPlaceholder}
                   type="email"
+                  pattern={EMAIL_INPUT_PATTERN}
+                  autoComplete="email"
+                  inputMode="email"
+                  maxLength={320}
                   required
                 />
               </label>
@@ -710,7 +819,11 @@ export default function WaitlistPage() {
                   value={phoneNumber}
                   onChange={(event) => setPhoneNumber(event.target.value)}
                   placeholder={copy.phoneNumberPlaceholder}
-                  maxLength={40}
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                  pattern={ALGERIA_MOBILE_PHONE_INPUT_PATTERN}
+                  title={copy.phoneNumberTitle}
+                  maxLength={13}
                 />
               </label>
 
@@ -749,6 +862,78 @@ export default function WaitlistPage() {
           </div>
         </div>
       </section>
+
+      <section id="team" className={styles.section}>
+        <div className={styles.sectionShell}>
+          <div className={styles.sectionHeader}>
+            <p className={styles.sectionEyebrow}>{copy.teamEyebrow}</p>
+            <h2 className={styles.sectionTitle}>{copy.teamTitle}</h2>
+          </div>
+
+          <div className={styles.teamGrid}>
+            {copy.teamMembers.map((member, index) => {
+              const memberAvatar = TEAM_AVATARS[index] ?? robotMascot;
+              return (
+              <article key={member.name} className={styles.teamCard}>
+                <div className={styles.teamAvatarWrap}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={memberAvatar.src} alt={`${member.name} avatar`} className={styles.teamAvatar} />
+                </div>
+                <div className={styles.teamMeta}>
+                  <h3>{member.name}</h3>
+                  <p>{member.role}</p>
+                </div>
+              </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <footer className={styles.siteFooter}>
+        <div className={styles.footerInner}>
+          <div className={styles.footerTop}>
+            <div className={styles.footerBrand}>
+              <Link href="/waitlist" className={styles.footerBrandLink}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={siteLogo.src} alt="" className={styles.footerBrandLogo} aria-hidden="true" />
+                <span>{t("homeBadge")}</span>
+              </Link>
+              <h2>{copy.footerTitle}</h2>
+              <p>{copy.footerSubtitle}</p>
+            </div>
+
+            <div className={styles.footerLinks}>
+              <h3>{copy.footerQuickLinksTitle}</h3>
+              <a href="#about">{copy.navAbout}</a>
+              <a href="#features">{copy.navFeatures}</a>
+              <a href="#benefits">{copy.navBenefits}</a>
+              <a href="#team">{copy.navTeam}</a>
+              <a href="#register">{copy.navRegister}</a>
+            </div>
+
+            <div className={styles.footerContacts}>
+              <h3>{copy.footerContactTitle}</h3>
+              <p>
+                <span>{copy.footerEmailLabel}</span>
+                <a href={`mailto:${copy.footerEmailValue}`}>{copy.footerEmailValue}</a>
+              </p>
+              <p>
+                <span>{copy.footerPhoneLabel}</span>
+                <a href="tel:+213550123456">{copy.footerPhoneValue}</a>
+              </p>
+              <p>
+                <span>{copy.footerLocationLabel}</span>
+                <strong>{copy.footerLocationValue}</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.footerBottom}>
+            <p>{copy.footerLegal.replace("{year}", String(currentYear))}</p>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

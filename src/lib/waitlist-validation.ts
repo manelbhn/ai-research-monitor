@@ -19,11 +19,37 @@ export type ValidWaitlistInput = {
   focus: string;
 };
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_PATTERN = /^[0-9+\-() ]{7,20}$/;
+const EMAIL_PATTERN = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
+const ALGERIA_MOBILE_PHONE_PATTERN = /^(?:\+213|0)(?:5|6|7)\d{8}$/;
 
 function asCleanString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function isValidEmail(email: string): boolean {
+  if (!EMAIL_PATTERN.test(email)) {
+    return false;
+  }
+
+  if (email.length > 320) {
+    return false;
+  }
+
+  const [localPart, domainPart] = email.split("@");
+  if (!localPart || !domainPart) {
+    return false;
+  }
+
+  if (localPart.length > 64 || localPart.startsWith(".") || localPart.endsWith(".") || localPart.includes("..")) {
+    return false;
+  }
+
+  const domainLabels = domainPart.split(".");
+  if (domainLabels.some((label) => !label || label.startsWith("-") || label.endsWith("-"))) {
+    return false;
+  }
+
+  return true;
 }
 
 export function validateWaitlistPayload(payload: WaitlistPayload): { value?: ValidWaitlistInput; error?: string } {
@@ -38,7 +64,7 @@ export function validateWaitlistPayload(payload: WaitlistPayload): { value?: Val
     return { error: "Please provide a valid name." };
   }
 
-  if (!EMAIL_PATTERN.test(email) || email.length > 320) {
+  if (!isValidEmail(email)) {
     return { error: "Please provide a valid email address." };
   }
 
@@ -46,8 +72,8 @@ export function validateWaitlistPayload(payload: WaitlistPayload): { value?: Val
     return { error: "Company name is too long." };
   }
 
-  if (phoneNumber && (!PHONE_PATTERN.test(phoneNumber) || phoneNumber.length > 40)) {
-    return { error: "Please provide a valid phone number." };
+  if (phoneNumber && !ALGERIA_MOBILE_PHONE_PATTERN.test(phoneNumber)) {
+    return { error: "Please provide a valid Algerian phone number." };
   }
 
   if (!VALID_ROLES.has(role)) {
