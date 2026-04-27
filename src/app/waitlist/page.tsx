@@ -30,6 +30,7 @@ type WaitlistCopy = {
   navBenefits: string;
   navTeam: string;
   navRegister: string;
+  navLabel: string;
   kicker: string;
   title: string;
   subtitle: string;
@@ -80,6 +81,8 @@ type WaitlistCopy = {
   mascotPriorityAccess: string;
   mascotLaunchSoon: string;
   mascotExclusiveAccess: string;
+  mascotAlt: string;
+  memberAvatarSuffix: string;
   footerTitle: string;
   footerSubtitle: string;
   footerQuickLinksTitle: string;
@@ -100,6 +103,7 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     navBenefits: "Benefits",
     navTeam: "Team",
     navRegister: "Register",
+    navLabel: "Waitlist navigation",
     kicker: "Limited Edition Access",
     title: "Join the launch waitlist for our AI research platform",
     subtitle:
@@ -185,6 +189,8 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     mascotPriorityAccess: "Priority access",
     mascotLaunchSoon: "Launching soon",
     mascotExclusiveAccess: "Exclusive invite",
+    mascotAlt: "Robot mascot",
+    memberAvatarSuffix: "avatar",
     footerTitle: "Contact",
     footerSubtitle: "Reach us for collaborations, early-access questions, or support.",
     footerQuickLinksTitle: "Quick links",
@@ -203,6 +209,7 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     navBenefits: "Avantages",
     navTeam: "Equipe",
     navRegister: "Inscription",
+    navLabel: "Navigation liste d'attente",
     kicker: "Acces edition limitee",
     title: "Rejoignez la liste d'attente de lancement de notre plateforme IA",
     subtitle:
@@ -245,11 +252,11 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     teamEyebrow: "Equipe",
     teamTitle: "Rencontrez l'equipe principale",
     teamMembers: [
-      { name: "Membre 1", role: "Responsable produit" },
-      { name: "Membre 2", role: "Ingenieur IA" },
-      { name: "Membre 3", role: "Chercheur scientifique" },
-      { name: "Membre 4", role: "Developpeur full-stack" },
-      { name: "Membre 5", role: "Croissance et partenariats" },
+      { name: "Amani Boulahia", role: "Developpeuse IA" },
+      { name: "Chiraz Benakmoum", role: "Developpeuse backend" },
+      { name: "Manel Benhanifia", role: "Lead + Developpeuse backend" },
+      { name: "Yousra Hind Bennabi", role: "Developpeuse backend" },
+      { name: "Lyna Selsabila Remadi", role: "Developpeuse frontend" },
     ],
     registerEyebrow: "Inscription",
     registerTitle: "Reservez votre place",
@@ -288,6 +295,8 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     mascotPriorityAccess: "Acces prioritaire",
     mascotLaunchSoon: "Lancement bientot",
     mascotExclusiveAccess: "Invitation exclusive",
+    mascotAlt: "Mascotte robot",
+    memberAvatarSuffix: "avatar",
     footerTitle: "Contact",
     footerSubtitle: "Ecrivez-nous pour les collaborations, l'acces anticipe ou le support.",
     footerQuickLinksTitle: "Liens rapides",
@@ -295,8 +304,8 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     footerEmailLabel: "Email",
     footerPhoneLabel: "Telephone",
     footerLocationLabel: "Localisation",
-    footerEmailValue: "contact@gap-bridge.ai",
-    footerPhoneValue: "+213 550 12 34 56",
+    footerEmailValue: "papero2s05@gmail.com",
+    footerPhoneValue: "+213 ### ## ## ##",
     footerLocationValue: "Alger, Algerie",
     footerLegal: "© {year} Gap Bridge. Tous droits reserves.",
   },
@@ -306,6 +315,7 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     navBenefits: "الفوائد",
     navTeam: "الفريق",
     navRegister: "التسجيل",
+    navLabel: "التنقل في صفحة الانتظار",
     kicker: "وصول بنسخة محدودة",
     title: "انضم الى قائمة انتظار الاطلاق لمنصتنا البحثية بالذكاء الاصطناعي",
     subtitle:
@@ -348,11 +358,11 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     teamEyebrow: "الفريق",
     teamTitle: "تعرف على الفريق الاساسي",
     teamMembers: [
-      { name: "العضو 1", role: "قائد المنتج" },
-      { name: "العضو 2", role: "مهندس ذكاء اصطناعي" },
-      { name: "العضو 3", role: "باحث علمي" },
-      { name: "العضو 4", role: "مطور ويب متكامل" },
-      { name: "العضو 5", role: "النمو والشراكات" },
+      { name: "Amani Boulahia", role: "مطورة ذكاء اصطناعي" },
+      { name: "Chiraz Benakmoum", role: "مطورة باك اند" },
+      { name: "Manel Benhanifia", role: "قائدة + مطورة باك اند" },
+      { name: "Yousra Hind Bennabi", role: "مطورة باك اند" },
+      { name: "Lyna Selsabila Remadi", role: "مطورة فرونت اند" },
     ],
     registerEyebrow: "التسجيل",
     registerTitle: "احجز مكانك",
@@ -391,6 +401,8 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     mascotPriorityAccess: "وصول اولوي",
     mascotLaunchSoon: "الاطلاق قريبا",
     mascotExclusiveAccess: "دعوة حصرية",
+    mascotAlt: "الروبوت",
+    memberAvatarSuffix: "صورة",
     footerTitle: "تواصل معنا",
     footerSubtitle: "تواصل معنا للتعاون، او استفسارات الوصول المبكر، او الدعم.",
     footerQuickLinksTitle: "روابط سريعة",
@@ -398,8 +410,8 @@ const WAITLIST_COPY: Record<Locale, WaitlistCopy> = {
     footerEmailLabel: "البريد الالكتروني",
     footerPhoneLabel: "الهاتف",
     footerLocationLabel: "الموقع",
-    footerEmailValue: "contact@gap-bridge.ai",
-    footerPhoneValue: "+213 550 12 34 56",
+    footerEmailValue: "papero2s05@gmail.com",
+    footerPhoneValue: "+213 ### ## ## ##",
     footerLocationValue: "الجزائر العاصمة، الجزائر",
     footerLegal: "© {year} Gap Bridge. جميع الحقوق محفوظة.",
   },
@@ -541,7 +553,7 @@ export default function WaitlistPage() {
     <div className={styles.heroVisual}>
       <div className={styles.visualFrame}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={robotMascot.src} alt="Robot mascot" className={styles.mascotImg} />
+        <img src={robotMascot.src} alt={copy.mascotAlt} className={styles.mascotImg} />
         <span className={`${styles.mascotTag} ${styles.mascotTagTopRight}`}>
           <span className={styles.mascotTagDot} />
           {copy.mascotExclusiveAccess}
@@ -572,7 +584,7 @@ export default function WaitlistPage() {
             <span className={styles.brandText}>{t("homeBadge")}</span>
           </Link>
 
-          <nav className={styles.navbarMenu} aria-label="Waitlist navigation">
+          <nav className={styles.navbarMenu} aria-label={copy.navLabel}>
             <a href="#about" className={styles.menuLink}>
               <svg viewBox="0 0 24 24" className={styles.navIcon} aria-hidden="true">
                 <circle cx="12" cy="12" r="9" />
@@ -877,7 +889,7 @@ export default function WaitlistPage() {
               <article key={member.name} className={styles.teamCard}>
                 <div className={styles.teamAvatarWrap}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={memberAvatar.src} alt={`${member.name} avatar`} className={styles.teamAvatar} />
+                  <img src={memberAvatar.src} alt={`${member.name} ${copy.memberAvatarSuffix}`} className={styles.teamAvatar} />
                 </div>
                 <div className={styles.teamMeta}>
                   <h3>{member.name}</h3>
