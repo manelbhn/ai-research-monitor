@@ -6,38 +6,32 @@ import FavoritePaperButton from "@/components/auth/FavoritePaperButton";
 import FollowTopicButton from "@/components/auth/FollowTopicButton";
 import SearchHistoryTracker from "@/components/auth/SearchHistoryTracker";
 import {
-  categories,
-  publicationYears,
-  researchGaps,
-  trendingTopics,
-} from "@/components/second-page/results/data";
-import {
   BackIcon,
   CalendarIcon,
   FilterIcon,
   GapIcon,
   SearchIcon,
   ToggleFilterIcon,
-  TopicIcon,
   TrendIcon,
 } from "@/components/second-page/results/icons";
 import PaperSummaryActions from "@/components/second-page/results/PaperSummaryActions";
 import SearchCompleteToast from "@/components/second-page/results/SearchCompleteToast";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import styles from "./results.module.css";
 import { searchPapers, type ApiPaper } from "@/lib/api";
 
-// ── Adapt ApiPaper → the shape the existing template expects ─────────────────
+// ── Adapt ApiPaper → display shape ────────────────────────────────────────────
 
 interface DisplayPaper {
   id: string;
   title: string;
-  authors: string;       // template renders as a string
+  authors: string;
   date: string;
-  metrics: string;       // template slot — we use relevance score here
-  insight: string;       // template slot — we use the AI summary here
+  year: string;
+  metrics: string;
+  insight: string;
   badges: string[];
   tags: string[];
   pdf: string;
@@ -45,22 +39,19 @@ interface DisplayPaper {
 }
 
 function adaptPaper(paper: ApiPaper, index: number): DisplayPaper {
-  // Derive a short display date from the ISO string
   const displayDate = paper.date
     ? new Date(paper.date).toLocaleDateString("en-US", { year: "numeric", month: "short" })
     : "Unknown date";
 
-  // Relevance score formatted as a metric
+  const year = paper.date ? paper.date.slice(0, 4) : "";
   const score = Math.round(paper.relevance_score);
   const metrics = `Score: ${score}`;
 
-  // Use first 3 authors max to keep the meta line readable
   const authorStr =
     paper.authors.length > 0
       ? paper.authors.slice(0, 3).join(", ") + (paper.authors.length > 3 ? " et al." : "")
       : "Unknown authors";
 
-  // Simple tag extraction from title words (fallback since arXiv has no tags)
   const stopWords = new Set(["a", "an", "the", "of", "in", "for", "and", "on", "with", "to", "is"]);
   const tags = paper.title
     .split(/\s+/)
@@ -68,7 +59,6 @@ function adaptPaper(paper: ApiPaper, index: number): DisplayPaper {
     .slice(0, 4)
     .map((w) => w.replace(/[^a-zA-Z0-9]/g, ""));
 
-  // Badge: mark top-ranked papers as Trending
   const badges: string[] = score >= 30 ? ["Trending"] : [];
 
   return {
@@ -76,6 +66,7 @@ function adaptPaper(paper: ApiPaper, index: number): DisplayPaper {
     title: paper.title,
     authors: authorStr,
     date: displayDate,
+    year,
     metrics,
     insight: paper.summary || paper.abstract.slice(0, 300),
     badges,
@@ -100,8 +91,12 @@ export default function ResultsPage() {
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const fallbackAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // ── Filter state ───────────────────────────────────────────────────────────
+  const [selectedYears, setSelectedYears] = useState<string[]>([]);
+  const [maxPapers, setMaxPapers] = useState<number>(20);
+
   // ── Real API data ──────────────────────────────────────────────────────────
-  const [papers, setPapers] = useState<DisplayPaper[]>([]);
+  const [allPapers, setAllPapers] = useState<DisplayPaper[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,7 +108,7 @@ export default function ResultsPage() {
     searchPapers(shownQuery)
       .then((res) => {
         if (!cancelled) {
-          setPapers(res.papers.map(adaptPaper));
+          setAllPapers(res.papers.map(adaptPaper));
           setLoading(false);
         }
       })
@@ -127,7 +122,32 @@ export default function ResultsPage() {
     return () => { cancelled = true; };
   }, [shownQuery]);
 
-  // ── Speech synthesis (unchanged from original) ────────────────────────────
+  // ── Available years from real papers ──────────────────────────────────────
+  const availableYears = useMemo(() => {
+    const years = [...new Set(allPapers.map((p) => p.year).filter(Boolean))].sort((a, b) => b.localeCompare(a));
+    return years;
+  }, [allPapers]);
+
+  // ── Filtered papers ────────────────────────────────────────────────────────
+  const papers = useMemo(() => {
+    let filtered = allPapers;
+
+    // Filter by selected years
+    if (selectedYears.length > 0) {
+      filtered = filtered.filter((p) => selectedYears.includes(p.year));
+    }
+
+    // Limit by max papers
+    return filtered.slice(0, maxPapers);
+  }, [allPapers, selectedYears, maxPapers]);
+
+  const toggleYear = (year: string) => {
+    setSelectedYears((prev) =>
+      prev.includes(year) ? prev.filter((y) => y !== year) : [...prev, year]
+    );
+  };
+
+  // ── Speech synthesis ───────────────────────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
@@ -243,7 +263,7 @@ export default function ResultsPage() {
     return format(t("summaryQuickTemplate"), { title: paperTitle, firstSentence });
   };
 
-  // ── Derived stats (same logic as original, now from real data) ─────────────
+  // ── Derived stats ──────────────────────────────────────────────────────────
   const trendingShare = papers.length > 0
     ? Math.round((papers.filter((p) => p.badges.includes("Trending")).length / papers.length) * 100)
     : 0;
@@ -267,39 +287,7 @@ export default function ResultsPage() {
     : t("resultsLensDefault");
 
   const trendSignal = trendingShare >= 50 ? t("resultsTrendStrong") : t("resultsTrendSteady");
-
   const contentWrapClass = `${styles.contentWrap} ${showFilters ? "" : styles.contentWrapOne}`;
-
-  const topicLabel = (label: string) => {
-    const map: Record<string, string> = {
-      "Large Language Models": t("resultsTopicLlm"),
-      "Diffusion Models": t("resultsTopicDiffusion"),
-      Transformers: t("resultsTopicTransformers"),
-      "Federated Learning": t("resultsTopicFederated"),
-    };
-    return map[label] ?? label;
-  };
-
-  const gapLabel = (gap: string) => {
-    const map: Record<string, string> = {
-      "Ethical frameworks for AI deployment": t("resultsGapEthics"),
-      "Energy-efficient model architectures": t("resultsGapEfficiency"),
-      "Multilingual NLP capabilities": t("resultsGapMultilingual"),
-      "Cross-domain transfer learning": t("resultsGapTransfer"),
-    };
-    return map[gap] ?? gap;
-  };
-
-  const categoryLabel = (category: string) => {
-    const map: Record<string, string> = {
-      "Machine Learning": t("resultsCategoryMl"),
-      "Deep Learning": t("resultsCategoryDl"),
-      "Natural Language Processing": t("resultsCategoryNlp"),
-      "Computer Vision": t("resultsCategoryCv"),
-      "Reinforcement Learning": t("resultsCategoryRl"),
-    };
-    return map[category] ?? category;
-  };
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -348,44 +336,84 @@ export default function ResultsPage() {
               <FilterIcon className={styles.sectionIcon} />
               {t("resultsFilters")}
             </h2>
+
+            {/* ── Publication Year filter ── */}
             <div className={styles.filterGroup}>
-              <h3><TopicIcon className={styles.groupIcon} /> {t("resultsTrendingTopics")}</h3>
-              <ul>
-                {trendingTopics.map((topic) => (
-                  <li key={topic.label}>{topicLabel(topic.label)} <span>{topic.count}</span></li>
-                ))}
-              </ul>
-            </div>
-            <div className={styles.filterGroup}>
-              <h3><GapIcon className={styles.groupIcon} /> {t("resultsResearchGaps")}</h3>
-              <div className={styles.gapBox}>
-                {researchGaps.map((gap) => <p key={gap}>{gapLabel(gap)}</p>)}
-              </div>
-            </div>
-            <div className={styles.filterGroup}>
-              <h3><CalendarIcon className={styles.groupIcon} /> {t("resultsPublicationYear")}</h3>
-              <ul className={styles.checkboxList}>
-                {publicationYears.map((year) => (
-                  <li key={year}>
-                    <input id={`y${year}`} type="checkbox" />
-                    <label htmlFor={`y${year}`}>{year}</label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className={styles.filterGroup}>
-              <h3>{t("resultsCategories")}</h3>
-              <ul className={styles.checkboxList}>
-                {categories.map((category) => {
-                  const id = `c-${category.toLowerCase().replaceAll(" ", "-")}`;
-                  return (
-                    <li key={category}>
-                      <input id={id} type="checkbox" />
-                      <label htmlFor={id}>{categoryLabel(category)}</label>
+              <h3>
+                <CalendarIcon className={styles.groupIcon} /> {t("resultsPublicationYear")}
+              </h3>
+              {loading ? (
+                <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>Loading years…</p>
+              ) : availableYears.length === 0 ? (
+                <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>No years available</p>
+              ) : (
+                <ul className={styles.checkboxList}>
+                  {availableYears.map((year) => (
+                    <li key={year}>
+                      <input
+                        id={`y${year}`}
+                        type="checkbox"
+                        checked={selectedYears.includes(year)}
+                        onChange={() => toggleYear(year)}
+                      />
+                      <label htmlFor={`y${year}`}>
+                        {year}
+                        <span style={{
+                          marginLeft: "6px",
+                          fontSize: "11px",
+                          color: "var(--text-muted)",
+                        }}>
+                          ({allPapers.filter((p) => p.year === year).length})
+                        </span>
+                      </label>
                     </li>
-                  );
-                })}
-              </ul>
+                  ))}
+                </ul>
+              )}
+              {selectedYears.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedYears([])}
+                  style={{
+                    marginTop: "8px",
+                    fontSize: "12px",
+                    color: "var(--text-muted)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "0",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Clear year filter
+                </button>
+              )}
+            </div>
+
+            {/* ── Number of papers filter ── */}
+            <div className={styles.filterGroup}>
+              <h3>Number of Papers</h3>
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "10px" }}>
+                Showing <strong>{Math.min(maxPapers, papers.length)}</strong> of <strong>{allPapers.length}</strong> papers
+              </p>
+              <input
+                type="range"
+                min={1}
+                max={allPapers.length || 20}
+                value={maxPapers}
+                onChange={(e) => setMaxPapers(Number(e.target.value))}
+                style={{ width: "100%", accentColor: "var(--primary)" }}
+              />
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: "11px",
+                color: "var(--text-muted)",
+                marginTop: "4px",
+              }}>
+                <span>1</span>
+                <span>{allPapers.length || 20}</span>
+              </div>
             </div>
           </aside>
         )}
@@ -452,7 +480,9 @@ export default function ResultsPage() {
           {!loading && !error && papers.length === 0 && (
             <article className={styles.paperCard} style={{ padding: "32px" }}>
               <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>
-                No papers found for <strong>{shownQuery}</strong>. Try a different topic.
+                {selectedYears.length > 0
+                  ? `No papers found for years: ${selectedYears.join(", ")}. Try clearing the year filter.`
+                  : `No papers found for "${shownQuery}". Try a different topic.`}
               </p>
             </article>
           )}
@@ -523,7 +553,6 @@ export default function ResultsPage() {
                 onSummaryChange={handleSummaryChange}
               />
 
-              {/* View Paper button → opens the real PDF */}
               {paper.pdf ? (
                 <a
                   href={paper.pdf}

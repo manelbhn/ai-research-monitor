@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers.search import router as search_router
 from routers.auth import router as auth_router
 from routers.gap import router as gap_router
+from routers.trending import router as trending_router
 
 app = FastAPI(
     title="AI Research Monitor API",
@@ -26,6 +27,7 @@ app.add_middleware(
 app.include_router(search_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(gap_router, prefix="/api")
+app.include_router(trending_router, prefix="/api")
 
 # ── Health check ───────────────────────────────────────────────────────────────
 @app.get("/")

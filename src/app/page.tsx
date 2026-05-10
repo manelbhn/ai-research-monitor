@@ -5,38 +5,64 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import HomeSearchForm from "@/components/home-page/HomeSearchForm";
 import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
-import { papers } from "@/components/second-page/results/data";
 import { getAuthUser } from "@/lib/client-auth";
-import type { Locale, ThemeMode, TranslationKey, VoicePreference } from "@/lib/i18n";
+import type { Locale, ThemeMode, VoicePreference } from "@/lib/i18n";
 import styles from "./page.module.css";
 
-const TREND_TITLE_KEYS: Partial<Record<string, TranslationKey>> = {
-  p1: "homePaperP1Title",
-  p3: "homePaperP3Title",
-  p4: "homePaperP4Title",
-};
+// ── Types ──────────────────────────────────────────────────────────────────────
 
-const TREND_INSIGHT_KEYS: Partial<Record<string, TranslationKey>> = {
-  p1: "homePaperP1Insight",
-  p3: "homePaperP3Insight",
-  p4: "homePaperP4Insight",
-};
-
-const TREND_TAG_KEYS: Partial<Record<string, TranslationKey>> = {
-  transformers: "homeTagTransformers",
-  NLP: "homeTagNlp",
-  "attention-mechanism": "homeTagAttentionMechanism",
-  efficiency: "homeTagEfficiency",
-  training: "homeTagTraining",
-  "deep-learning": "homeTagDeepLearning",
-  multimodal: "homeTagMultimodal",
-  "vision-language": "homeTagVisionLanguage",
-  "cross-attention": "homeTagCrossAttention",
-};
-
-function humanizeTag(tag: string) {
-  return tag.replaceAll("-", " ");
+interface TrendingPaper {
+  title: string;
+  abstract: string;
+  authors: string[];
+  date: string;
+  pdf: string;
+  source: string;
+  summary: string;
+  relevance_score: number;
 }
+
+// ── Fetch trending from backend ────────────────────────────────────────────────
+
+async function fetchTrending(): Promise<TrendingPaper[]> {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/trending`
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.papers ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function formatDate(dateStr: string): string {
+  if (!dateStr) return "";
+  try {
+    return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short" });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatAuthors(authors: string[]): string {
+  if (!authors || authors.length === 0) return "";
+  return authors.slice(0, 2).join(", ") + (authors.length > 2 ? " et al." : "");
+}
+
+function extractTags(title: string): string[] {
+  const stopWords = new Set(["a","an","the","of","in","for","and","on","with","to","is","are","via","using","based"]);
+  return title
+    .split(/\s+/)
+    .filter((w) => w.length > 4 && !stopWords.has(w.toLowerCase()))
+    .slice(0, 3)
+    .map((w) => w.replace(/[^a-zA-Z0-9]/g, ""));
+}
+
+// ── Home page ──────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const {
@@ -57,64 +83,13 @@ export default function Home() {
   const [showAccountPrompt, setShowAccountPrompt] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement | null>(null);
-  const loopCopies = [0] as const;
 
-  const localizedPapers = useMemo(() => {
-    return papers.map((paper) => {
-      const titleKey = TREND_TITLE_KEYS[paper.id];
-      const insightKey = TREND_INSIGHT_KEYS[paper.id];
-      return {
-        ...paper,
-        rawTags: paper.tags,
-        title: titleKey ? t(titleKey) : paper.title,
-        insight: insightKey ? t(insightKey) : paper.insight,
-        tags: paper.tags.map((tag) => {
-          const tagKey = TREND_TAG_KEYS[tag];
-          return tagKey ? t(tagKey) : humanizeTag(tag);
-        }),
-      };
-    });
-  }, [t]);
+  // ── Real trending papers ───────────────────────────────────────────────────
+  const [trendingPapers, setTrendingPapers] = useState<TrendingPaper[]>([]);
 
-  const trendingPreview = useMemo(
-    () => localizedPapers.filter((paper) => paper.badges.includes("Trending")).slice(0, 3),
-    [localizedPapers],
-  );
-
-  const trendingTopicTags = useMemo(() => {
-    const counts = papers
-      .filter((paper) => paper.badges.includes("Trending"))
-      .flatMap((paper) => paper.tags)
-      .reduce<Record<string, number>>((acc, tag) => {
-        acc[tag] = (acc[tag] ?? 0) + 1;
-        return acc;
-      }, {});
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([tag]) => tag);
+  useEffect(() => {
+    fetchTrending().then(setTrendingPapers);
   }, []);
-
-  const trendingTopicCards = useMemo(() => {
-    return trendingTopicTags.map((topic) => {
-      const related = localizedPapers.filter(
-        (paper) => paper.badges.includes("Trending") && paper.rawTags.includes(topic),
-      );
-      const lead = related[0];
-      const summaryText = lead?.insight ?? "";
-      const clippedSummary =
-        summaryText.length > 180 ? `${summaryText.slice(0, 180).trimEnd()}...` : summaryText;
-      const topicKey = TREND_TAG_KEYS[topic];
-      return {
-        topic,
-        topicLabel: topicKey ? t(topicKey) : humanizeTag(topic),
-        searchTopic: humanizeTag(topic),
-        count: related.length,
-        leadTitle: lead?.title ?? topic,
-        summary: clippedSummary,
-      };
-    });
-  }, [localizedPapers, t, trendingTopicTags]);
 
   useEffect(() => {
     const storageKey = "homeHeadlineIndex";
@@ -136,9 +111,7 @@ export default function Home() {
     const timer = window.setTimeout(() => {
       setShowAccountPrompt(!getAuthUser());
     }, 0);
-    return () => {
-      window.clearTimeout(timer);
-    };
+    return () => { window.clearTimeout(timer); };
   }, []);
 
   useEffect(() => {
@@ -148,9 +121,7 @@ export default function Home() {
       }
     };
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setSettingsOpen(false);
-      }
+      if (event.key === "Escape") setSettingsOpen(false);
     };
     window.addEventListener("mousedown", onPointerDown);
     window.addEventListener("keydown", onEscape);
@@ -196,7 +167,6 @@ export default function Home() {
               </svg>
               <span>{t("homeNavFeatures")}</span>
             </a>
-            
             <Link href="/profile" className={styles.menuLink} aria-label={t("homeNavProfile")}>
               <svg viewBox="0 0 24 24" className={styles.navIcon} aria-hidden="true">
                 <circle cx="12" cy="8" r="3" />
@@ -271,6 +241,7 @@ export default function Home() {
         </div>
       </header>
 
+      {/* ── Hero ── */}
       <section className={styles.heroSection}>
         <div className={styles.heroAurora} aria-hidden="true">
           <div className={`${styles.heroOrb} ${styles.heroOrbPurple}`} />
@@ -278,7 +249,6 @@ export default function Home() {
           <div className={`${styles.heroOrb} ${styles.heroOrbMauve}`} />
         </div>
         <div className={styles.heroInner}>
-          {/* Left: text content */}
           <div className={styles.heroContent}>
             <p className={styles.badge}>{t("homeBadge")}</p>
             <div className={styles.titleStable}>
@@ -298,7 +268,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right: mascot */}
           <div className={styles.mascotPanel} aria-hidden="true">
             <div className={styles.mascotFloatTag} style={{ top: "12%", left: "-2%" }}>
               <span className={styles.mascotTagDot} />
@@ -316,7 +285,6 @@ export default function Home() {
               <span className={styles.mascotTagDot} />
               {t("homeMascotLabelRelevance")}
             </div>
-
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={robotMascot.src}
@@ -329,12 +297,14 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Search ── */}
       <section id="search-section" className={styles.searchSection}>
         <div className={styles.searchInner}>
           <HomeSearchForm />
         </div>
       </section>
 
+      {/* ── Features ── */}
       <section id="features-section" className={styles.featuresSection}>
         <div className={styles.featuresInner}>
           <section className={styles.features}>
@@ -342,15 +312,13 @@ export default function Home() {
               <div className={styles.cardIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" className={styles.cardIconSvg}>
                   <path d="M12 3.5L13.8 8.2L18.5 10L13.8 11.8L12 16.5L10.2 11.8L5.5 10L10.2 8.2L12 3.5Z" />
-                  <path d="M18.5 4.5V8.5" />
-                  <path d="M20.5 6.5H16.5" />
+                  <path d="M18.5 4.5V8.5" /><path d="M20.5 6.5H16.5" />
                   <circle cx="7" cy="16.5" r="1" />
                 </svg>
               </div>
               <h2>{t("homeFeature1Title")}</h2>
               <p>{t("homeFeature1Body")}</p>
             </article>
-
             <article className={styles.card}>
               <div className={styles.cardIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" className={styles.cardIconSvg}>
@@ -361,7 +329,6 @@ export default function Home() {
               <h2>{t("homeFeature2Title")}</h2>
               <p>{t("homeFeature2Body")}</p>
             </article>
-
             <article className={styles.card}>
               <div className={styles.cardIcon} aria-hidden="true">
                 <svg viewBox="0 0 24 24" className={styles.cardIconSvg}>
@@ -377,6 +344,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Trends ── */}
       <section id="trends-section" className={styles.trendsSection}>
         <div className={styles.trendsInner}>
           <div className={styles.trendsHeader}>
@@ -390,76 +358,59 @@ export default function Home() {
             </Link>
           </div>
 
-          <section className={styles.topicsPanel}>
-            <h3 className={styles.trendsBlockTitle}>{t("homeTrendsTopicsTitle")}</h3>
-            <div className={styles.topicsGrid}>
-              <div className={styles.topicsTrack}>
-                {loopCopies.map((copy) => (
-                  <div
-                    key={`topic-copy-${copy}`}
-                    className={styles.trackGroup}
-                    aria-hidden={copy > 0 ? "true" : undefined}
-                  >
-                    {trendingTopicCards.map((entry) => (
-                      <article key={`${entry.topic}-${copy}`} className={styles.topicCard}>
-                        <span className={styles.trendBadge}>{t("resultsBadgeTrending")}</span>
-                        <h3 className={styles.topicName}>{entry.topicLabel}</h3>
-                        <p className={styles.topicLeadTitle}>{entry.leadTitle}</p>
-                        <p className={styles.topicSummary}>{entry.summary}</p>
-                        <Link
-                          href={`/results?q=${encodeURIComponent(entry.searchTopic)}`}
-                          className={styles.topicAction}
-                          tabIndex={copy > 0 ? -1 : undefined}
-                        >
-                          {t("homeTrendsFollow")}
-                        </Link>
-                      </article>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <section className={styles.papersPanel}>
-            <h3 className={styles.trendsBlockTitle}>{t("homeTrendsPapersTitle")}</h3>
+          {/* Real trending papers from cache */}
+          {trendingPapers.length === 0 ? (
+            <p style={{
+              color: "var(--hero-text-secondary)",
+              fontSize: "14px",
+              padding: "20px 0",
+              opacity: 0.7,
+            }}>
+              Search for topics to see trending papers here.
+            </p>
+          ) : (
             <div className={styles.trendsGrid}>
               <div className={styles.trendsTrack}>
-                {loopCopies.map((copy) => (
-                  <div
-                    key={`paper-copy-${copy}`}
-                    className={styles.trackGroup}
-                    aria-hidden={copy > 0 ? "true" : undefined}
-                  >
-                    {trendingPreview.map((paper) => (
-                      <article key={`${paper.id}-${copy}`} className={styles.trendCard}>
-                        <span className={styles.trendBadge}>{t("resultsBadgeTrending")}</span>
-                        <h3>{paper.title}</h3>
-                        <p className={styles.trendMeta}>
-                          {paper.authors} - {paper.date}
-                        </p>
-                        <div className={styles.trendTags}>
-                          {paper.tags.slice(0, 3).map((tag) => (
-                            <span key={`${paper.id}-${copy}-${tag}`}>{tag}</span>
-                          ))}
-                        </div>
-                        <Link
-                          href={`/papers/${paper.id}`}
+                <div className={styles.trackGroup}>
+                  {trendingPapers.slice(0, 6).map((paper, index) => (
+                    <article key={index} className={styles.trendCard}>
+                      <span className={styles.trendBadge}>{t("resultsBadgeTrending")}</span>
+                      <h3>{paper.title}</h3>
+                      <p className={styles.trendMeta}>
+                        {formatAuthors(paper.authors)} — {formatDate(paper.date)}
+                      </p>
+                      <div className={styles.trendTags}>
+                        {extractTags(paper.title).map((tag) => (
+                          <span key={tag}>{tag}</span>
+                        ))}
+                      </div>
+                      {paper.pdf ? (
+                        <a
+                          href={paper.pdf}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className={styles.trendOpenBtn}
-                          tabIndex={copy > 0 ? -1 : undefined}
+                        >
+                          {t("homeTrendsOpen")}
+                        </a>
+                      ) : (
+                        <Link
+                          href={`/results?q=${encodeURIComponent(paper.title.split(" ").slice(0, 3).join(" "))}`}
+                          className={styles.trendOpenBtn}
                         >
                           {t("homeTrendsOpen")}
                         </Link>
-                      </article>
-                    ))}
-                  </div>
-                ))}
+                      )}
+                    </article>
+                  ))}
+                </div>
               </div>
             </div>
-          </section>
+          )}
         </div>
       </section>
 
+      {/* ── Account prompt ── */}
       {showAccountPrompt && (
         <section className={styles.ctaSection}>
           <div className={styles.ctaInner}>
@@ -470,12 +421,10 @@ export default function Home() {
                   <path d="M5 20C5 16 7.8 14 12 14C16.2 14 19 16 19 20" />
                 </svg>
               </div>
-
               <div className={styles.accountCopy}>
                 <p className={styles.accountTitle}>{t("homeAccountTitle")}</p>
                 <p className={styles.accountText}>{t("homeAccountText")}</p>
               </div>
-
               <div className={styles.accountActions}>
                 <Link href="/login" className={styles.accountSecondaryBtn}>
                   {t("homeHaveAccount")}

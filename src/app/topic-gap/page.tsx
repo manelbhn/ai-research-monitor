@@ -142,7 +142,7 @@ export default function TopicGapPage() {
             {shownQuery}: uncover the missing opportunities
           </h1>
           <p className={styles.subtitle}>
-            The AI reads real arXiv papers on your topic and identifies what
+            The AI reads papers on your topic and identifies what
             research areas are missing, underexplored, or not addressed.
           </p>
 
@@ -165,7 +165,7 @@ export default function TopicGapPage() {
               ⏳ {status}
             </p>
             <p style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "8px" }}>
-              Step 1: fetch real papers → Step 2: AI reads summaries → Step 3: identify gaps
+              Please wait while we analyze the research landscape...
             </p>
           </section>
         )}

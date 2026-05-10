@@ -43,8 +43,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
         { remember: rememberMe }
       );
 
+      // ── Redirect to home page after login/signup ──
       const params = new URLSearchParams(window.location.search);
-      const redirectTarget = params.get("redirect") || "/results";
+      const redirectTarget = params.get("redirect") || "/";
       router.push(redirectTarget);
 
     } catch (err: unknown) {

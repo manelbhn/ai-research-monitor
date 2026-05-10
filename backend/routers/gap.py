@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import hashlib
 
 from fastapi import APIRouter, HTTPException
 
@@ -10,21 +11,49 @@ from groq import Groq
 from dotenv import load_dotenv
 from schemas import GapRequest, GapResponse, GapCard
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 router = APIRouter()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+# ── Cache setup ────────────────────────────────────────────────────────────────
+CACHE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "papers_cache.json")
+
+
+def _cache_key(topic: str) -> str:
+    return hashlib.md5(topic.strip().lower().encode()).hexdigest()
+
+
+def _load_cache() -> dict:
+    if not os.path.exists(CACHE_FILE):
+        return {}
+    try:
+        with open(CACHE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _get_summaries_from_cache(topic: str) -> list[str]:
+    """
+    Read summaries saved by search router.
+    Returns empty list if topic not cached yet.
+    """
+    cache = _load_cache()
+    key = _cache_key(topic)
+    if key in cache:
+        summaries = cache[key].get("summaries", [])
+        print(f"[gap] Using {len(summaries)} cached summaries for: {topic}")
+        return summaries
+    print(f"[gap] No cache found for: {topic}")
+    return []
+
+
+# ── Gap detection ──────────────────────────────────────────────────────────────
 
 def detect_gaps(topic: str, summaries: list[str]) -> list[GapCard]:
-    """
-    Sends paper summaries to Groq and asks it to identify
-    real research gaps specific to the topic.
-    """
-
-    # Join summaries into a numbered list for the prompt
     summaries_text = "\n\n".join(
-        f"Paper {i + 1}: {s}" for i, s in enumerate(summaries[:15])  # max 15 to stay within token limit
+        f"Paper {i + 1}: {s}" for i, s in enumerate(summaries[:15])
     )
 
     prompt = f"""You are an expert research analyst. Below are AI-generated summaries of recent academic papers on the topic: "{topic}".
@@ -57,7 +86,6 @@ JSON:"""
 
     raw = response.choices[0].message.content.strip()
 
-    # Strip markdown code fences if model adds them
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
@@ -75,20 +103,32 @@ JSON:"""
             action=item.get("action", ""),
         ))
 
-    # Sort by opportunity score descending
     return sorted(gaps, key=lambda g: g.opportunity, reverse=True)
 
+
+# ── Route ──────────────────────────────────────────────────────────────────────
 
 @router.post("/gap", response_model=GapResponse)
 def analyze_gap(request: GapRequest):
     if not request.topic.strip():
         raise HTTPException(status_code=400, detail="Topic cannot be empty.")
 
-    if not request.summaries:
-        raise HTTPException(status_code=400, detail="No paper summaries provided.")
-
+    raw = ""
     try:
-        gaps = detect_gaps(request.topic, request.summaries)
+        # Step 1 — try to get summaries from cache (no extra API calls)
+        summaries = _get_summaries_from_cache(request.topic)
+
+        # Step 2 — if not cached, use summaries sent by frontend
+        if not summaries:
+            summaries = request.summaries
+
+        if not summaries:
+            raise HTTPException(
+                status_code=400,
+                detail="No summaries available. Please search this topic first."
+            )
+
+        gaps = detect_gaps(request.topic, summaries)
         return GapResponse(topic=request.topic, gaps=gaps)
 
     except json.JSONDecodeError as e:
@@ -98,6 +138,8 @@ def analyze_gap(request: GapRequest):
             status_code=500,
             detail=f"AI returned invalid JSON: {str(e)}"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         print(f"[gap] Unexpected error: {e}")
