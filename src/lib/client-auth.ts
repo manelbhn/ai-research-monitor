@@ -32,28 +32,35 @@ export type TopicGapNote = {
   content: string;
 };
 
+// ── Auth key (shared — not per user) ──────────────────────────────────────────
 const AUTH_KEY = "rdp.auth.user";
-const TOPICS_KEY = "rdp.trends.topics";
-const FAVORITES_KEY = "rdp.profile.favorites";
-const HISTORY_KEY = "rdp.profile.history";
+
+// ── Per-user key helpers ───────────────────────────────────────────────────────
+// Each user gets their own namespace based on their email
+// e.g. "rdp.user:alice@example.com.favorites"
+
+function userKey(email: string, suffix: string): string {
+  return `rdp.user:${email}.${suffix}`;
+}
+
+function getCurrentEmail(): string | null {
+  const user = getAuthUser();
+  return user?.email ?? null;
+}
 
 function safeWindow(): Window | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
+  if (typeof window === "undefined") return null;
   return window;
 }
 
+// ── Auth ───────────────────────────────────────────────────────────────────────
+
 export function getAuthUser(): AuthUser | null {
   const w = safeWindow();
-  if (!w) {
-    return null;
-  }
+  if (!w) return null;
 
   const raw = w.localStorage.getItem(AUTH_KEY) ?? w.sessionStorage.getItem(AUTH_KEY);
-  if (!raw) {
-    return null;
-  }
+  if (!raw) return null;
 
   try {
     return JSON.parse(raw) as AuthUser;
@@ -64,9 +71,7 @@ export function getAuthUser(): AuthUser | null {
 
 export function setAuthUser(user: AuthUser, options?: { remember?: boolean }): void {
   const w = safeWindow();
-  if (!w) {
-    return;
-  }
+  if (!w) return;
 
   const remember = options?.remember ?? true;
   const serialized = JSON.stringify(user);
@@ -83,23 +88,22 @@ export function setAuthUser(user: AuthUser, options?: { remember?: boolean }): v
 
 export function clearAuthUser(): void {
   const w = safeWindow();
-  if (!w) {
-    return;
-  }
+  if (!w) return;
   w.localStorage.removeItem(AUTH_KEY);
   w.sessionStorage.removeItem(AUTH_KEY);
 }
 
+// ── Followed Topics ────────────────────────────────────────────────────────────
+
 export function getFollowedTopics(): FollowedTopic[] {
   const w = safeWindow();
-  if (!w) {
-    return [];
-  }
+  if (!w) return [];
 
-  const raw = w.localStorage.getItem(TOPICS_KEY);
-  if (!raw) {
-    return [];
-  }
+  const email = getCurrentEmail();
+  if (!email) return [];
+
+  const raw = w.localStorage.getItem(userKey(email, "topics"));
+  if (!raw) return [];
 
   try {
     const parsed = JSON.parse(raw) as FollowedTopic[];
@@ -111,10 +115,12 @@ export function getFollowedTopics(): FollowedTopic[] {
 
 export function setFollowedTopics(topics: FollowedTopic[]): void {
   const w = safeWindow();
-  if (!w) {
-    return;
-  }
-  w.localStorage.setItem(TOPICS_KEY, JSON.stringify(topics));
+  if (!w) return;
+
+  const email = getCurrentEmail();
+  if (!email) return;
+
+  w.localStorage.setItem(userKey(email, "topics"), JSON.stringify(topics));
 }
 
 export function toggleFollowTopic(label: string): FollowedTopic[] {
@@ -143,27 +149,23 @@ export function toggleFollowTopic(label: string): FollowedTopic[] {
 export function updateTopicPreference(id: string, preference: TrendPreference): FollowedTopic[] {
   const topics = getFollowedTopics();
   const updated = topics.map((topic) =>
-    topic.id === id
-      ? {
-          ...topic,
-          preference,
-        }
-      : topic,
+    topic.id === id ? { ...topic, preference } : topic,
   );
   setFollowedTopics(updated);
   return updated;
 }
 
+// ── Favorite Papers ────────────────────────────────────────────────────────────
+
 export function getFavoritePapers(): FavoritePaper[] {
   const w = safeWindow();
-  if (!w) {
-    return [];
-  }
+  if (!w) return [];
 
-  const raw = w.localStorage.getItem(FAVORITES_KEY);
-  if (!raw) {
-    return [];
-  }
+  const email = getCurrentEmail();
+  if (!email) return [];
+
+  const raw = w.localStorage.getItem(userKey(email, "favorites"));
+  if (!raw) return [];
 
   try {
     const parsed = JSON.parse(raw) as FavoritePaper[];
@@ -175,11 +177,12 @@ export function getFavoritePapers(): FavoritePaper[] {
 
 export function setFavoritePapers(papers: FavoritePaper[]): void {
   const w = safeWindow();
-  if (!w) {
-    return;
-  }
+  if (!w) return;
 
-  w.localStorage.setItem(FAVORITES_KEY, JSON.stringify(papers));
+  const email = getCurrentEmail();
+  if (!email) return;
+
+  w.localStorage.setItem(userKey(email, "favorites"), JSON.stringify(papers));
 }
 
 export function toggleFavoritePaper(id: string, title: string): FavoritePaper[] {
@@ -203,16 +206,17 @@ export function toggleFavoritePaper(id: string, title: string): FavoritePaper[] 
   return updated;
 }
 
+// ── Search History ─────────────────────────────────────────────────────────────
+
 export function getSearchHistory(): SearchHistoryItem[] {
   const w = safeWindow();
-  if (!w) {
-    return [];
-  }
+  if (!w) return [];
 
-  const raw = w.localStorage.getItem(HISTORY_KEY);
-  if (!raw) {
-    return [];
-  }
+  const email = getCurrentEmail();
+  if (!email) return [];
+
+  const raw = w.localStorage.getItem(userKey(email, "history"));
+  if (!raw) return [];
 
   try {
     const parsed = JSON.parse(raw) as SearchHistoryItem[];
@@ -224,12 +228,15 @@ export function getSearchHistory(): SearchHistoryItem[] {
 
 export function addSearchHistory(query: string): SearchHistoryItem[] {
   const cleaned = query.trim();
-  if (!cleaned) {
-    return getSearchHistory();
-  }
+  if (!cleaned) return getSearchHistory();
+
+  const email = getCurrentEmail();
+  if (!email) return [];
 
   const history = getSearchHistory();
-  const deduped = history.filter((item) => item.query.toLowerCase() !== cleaned.toLowerCase());
+  const deduped = history.filter(
+    (item) => item.query.toLowerCase() !== cleaned.toLowerCase()
+  );
 
   const next: SearchHistoryItem = {
     id: crypto.randomUUID(),
@@ -241,39 +248,43 @@ export function addSearchHistory(query: string): SearchHistoryItem[] {
 
   const w = safeWindow();
   if (w) {
-    w.localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    w.localStorage.setItem(userKey(email, "history"), JSON.stringify(updated));
   }
 
   return updated;
 }
 
+// ── Topic Gap Notes ────────────────────────────────────────────────────────────
+
 export function getTopicGapNotes(): TopicGapNote[] {
   const w = safeWindow();
-  if (!w) {
-    return [];
-  }
+  if (!w) return [];
+
+  const email = getCurrentEmail();
+  if (!email) return [];
 
   const notes: TopicGapNote[] = [];
-  const prefix = "topic-gap-notes:";
+  const prefix = `rdp.user:${email}.note:`;
 
   for (let index = 0; index < w.localStorage.length; index += 1) {
     const key = w.localStorage.key(index);
-    if (!key || !key.startsWith(prefix)) {
-      continue;
-    }
+    if (!key || !key.startsWith(prefix)) continue;
 
     const query = key.slice(prefix.length).trim();
     const content = w.localStorage.getItem(key)?.trim() ?? "";
-    if (!query || !content) {
-      continue;
-    }
+    if (!query || !content) continue;
 
-    notes.push({
-      id: key,
-      query,
-      content,
-    });
+    notes.push({ id: key, query, content });
   }
 
   return notes.sort((a, b) => a.query.localeCompare(b.query));
+}
+
+// ── Note key helper (used by topic-gap page) ───────────────────────────────────
+// Call this to get the localStorage key for a note for the current user
+
+export function getNoteKey(query: string): string | null {
+  const email = getCurrentEmail();
+  if (!email) return null;
+  return `rdp.user:${email}.note:${query.toLowerCase()}`;
 }

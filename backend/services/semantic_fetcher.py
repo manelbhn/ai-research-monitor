@@ -11,7 +11,7 @@ API_KEY = os.getenv("SEMANTIC_API_KEY")
 
 
 def fetch_semantic(topic, limit=50, retries=3):
-    url = "https://api.semanticscholar.org/graph/v1/paper/search"
+    url = "https://api.openalex.org/works"
 
     params = {
         "query": topic,
@@ -28,7 +28,7 @@ def fetch_semantic(topic, limit=50, retries=3):
         try:
             response = requests.get(url, params=params, headers=headers, timeout=10)
         except RequestException as e:
-            print("Semantic unavailable (offline mode)")
+            print("openAlex unavailable (offline mode)")
             return []
 
         if response.status_code == 200:
@@ -43,7 +43,7 @@ def fetch_semantic(topic, limit=50, retries=3):
                     "authors": [a["name"] for a in p.get("authors", [])],
                     "publication_date": str(p.get("year", "")),
                     "pdf_link": p.get("url", ""),
-                    "source": "semantic",
+                    "source": "openAlex",
                     "citation_count": p.get("citationCount", 0)
                 })
 
@@ -54,8 +54,8 @@ def fetch_semantic(topic, limit=50, retries=3):
             time.sleep(0.5)
 
         else:
-            print("Semantic Scholar error:", response.status_code)
+            print("openAlex error:", response.status_code)
             return []
 
-    print("Semantic Scholar failed after retries")
+    print("openAlex failed after retries")
     return []
