@@ -61,9 +61,16 @@ export async function POST(request: NextRequest) {
       message,
       position: result.position,
     });
-  } catch {
+  } catch (error) {
+    console.error("Waitlist subscribe error:", error);
+
+    const message =
+      error instanceof Error && error.message.includes("DATABASE_URL")
+        ? "Server is not configured yet. Please try again soon."
+        : "Server error. Please try again.";
+
     return NextResponse.json(
-      { success: false, message: "Server error. Please try again." },
+      { success: false, message },
       { status: 500 },
     );
   }

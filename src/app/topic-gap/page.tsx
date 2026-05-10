@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useAppPreferences } from "@/components/providers/AppPreferencesProvider";
 import { searchPapers, detectGaps, type GapCard } from "@/lib/api";
 import styles from "./topic-gap.module.css";
@@ -19,7 +19,7 @@ function getPriorityLabel(opportunity: number) {
   return "Good coverage";
 }
 
-export default function TopicGapPage() {
+function TopicGapPageContent() {
   const { t } = useAppPreferences();
   const searchParams = useSearchParams();
   const query = searchParams.get("q")?.trim();
@@ -277,5 +277,13 @@ export default function TopicGapPage() {
         )}
       </section>
     </main>
+  );
+}
+
+export default function TopicGapPage() {
+  return (
+    <Suspense fallback={<main className={styles.page} />}>
+      <TopicGapPageContent />
+    </Suspense>
   );
 }

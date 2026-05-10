@@ -1,6 +1,6 @@
-﻿.page {
-  --hero-text-primary: #2f2448;
-  --hero-text-secondary: #5f5679;
+.page {
+  --hero-text-primary: #ffffff;
+  --hero-text-secondary: #e6e4f0;
   min-height: 100svh;
   width: 100%;
   position: relative;
@@ -36,7 +36,8 @@
 
 .navbar,
 .heroSection,
-.section {
+.section,
+.siteFooter {
   position: relative;
   z-index: 1;
 }
@@ -71,29 +72,14 @@
   text-shadow: 0 1px 4px rgba(31, 22, 66, 0.2);
 }
 
-.brandMark {
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.brandIcon {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 .brandText {
   white-space: nowrap;
+}
+
+.brandLogo {
+  width: 104px;
+  height: 104px;
+  object-fit: contain;
 }
 
 .navbarMenu {
@@ -347,6 +333,7 @@
 .infoCard,
 .detailCard,
 .benefitCard,
+.teamCard,
 .registerCard {
   border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.24);
@@ -368,6 +355,7 @@
 .infoCard p,
 .detailCard p,
 .benefitCard p,
+.teamCard p,
 .registerCard p,
 .registerCard label span {
   color: var(--hero-text-secondary);
@@ -409,6 +397,16 @@
 
 .heroVisual {
   display: grid;
+  justify-items: center;
+}
+
+.heroVisualDesktop {
+  display: grid;
+}
+
+.heroVisualMobile {
+  display: none;
+  width: 100%;
   justify-items: center;
 }
 
@@ -461,6 +459,21 @@
   animation: tagFloat 4.8s ease-in-out infinite;
 }
 
+.mascotTagTopRight {
+  top: 21%;
+  inset-inline-end: -10%;
+}
+
+.mascotTagBottomLeft {
+  bottom: 22%;
+  inset-inline-start: -9%;
+}
+
+.mascotTagBottomRight {
+  bottom: 0;
+  inset-inline-end: -3%;
+}
+
 .mascotTag:nth-of-type(1) { animation-delay: -1.2s; }
 .mascotTag:nth-of-type(2) { animation-delay: -2.2s; }
 .mascotTag:nth-of-type(3) { animation-delay: -0.6s; }
@@ -468,7 +481,7 @@
 
 .mascotTagEdge {
   top: 12%;
-  left: -8%;
+  inset-inline-start: -8%;
 }
 
 .mascotTagDot {
@@ -540,7 +553,8 @@
 
 .cardGrid,
 .detailGrid,
-.benefitsGrid {
+.benefitsGrid,
+.teamGrid {
   display: grid;
   gap: 14px;
 }
@@ -571,6 +585,11 @@
   padding-bottom: 4px;
 }
 
+.teamGrid {
+  width: min(1180px, 100%);
+  grid-template-columns: repeat(5, minmax(170px, 1fr));
+}
+
 .detailGrid > *,
 .benefitsGrid > * {
   flex: 0 0 min(360px, calc(100vw - 48px));
@@ -578,7 +597,8 @@
 
 .infoCard,
 .detailCard,
-.benefitCard {
+.benefitCard,
+.teamCard {
   padding: 18px;
   display: grid;
   gap: 10px;
@@ -591,14 +611,16 @@
 
 .infoCard:hover,
 .detailCard:hover,
-.benefitCard:hover {
+.benefitCard:hover,
+.teamCard:hover {
   transform: translateY(-5px) scale(1.03);
   box-shadow: 0 22px 40px rgba(31, 20, 62, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.28) inset;
   border-color: rgba(255, 255, 255, 0.44);
 }
 
 .infoCard h3,
-.detailCard h3 {
+.detailCard h3,
+.teamCard h3 {
   margin: 0;
   color: var(--hero-text-primary);
   font-size: clamp(18px, 1.8vw, 24px);
@@ -627,6 +649,173 @@
   margin-top: 6px;
   background: linear-gradient(90deg, var(--secondary), var(--primary));
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+}
+
+.teamCard p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.teamAvatarWrap {
+  width: 132px;
+  height: 132px;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  overflow: hidden;
+}
+
+.teamAvatar {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 12px rgba(138, 76, 183, 0.4));
+  animation: teamAvatarFrontFloat 3.6s ease-in-out infinite;
+}
+
+.teamMeta {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
+}
+
+.teamCard:nth-child(2) .teamAvatar {
+  animation-delay: -0.8s;
+}
+
+.teamCard:nth-child(3) .teamAvatar {
+  animation-delay: -1.5s;
+}
+
+.teamCard:nth-child(4) .teamAvatar {
+  animation-delay: -2.1s;
+}
+
+.teamCard:nth-child(5) .teamAvatar {
+  animation-delay: -2.7s;
+}
+
+.siteFooter {
+  margin-top: 24px;
+  padding: 12px 0 10px;
+}
+
+.footerInner {
+  width: min(1320px, 100%);
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 40px);
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  padding-top: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.footerTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(180px, 0.7fr) minmax(220px, 0.8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.footerBrand {
+  display: grid;
+  gap: 8px;
+}
+
+.footerBrandLink {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--hero-text-primary);
+  font-weight: 800;
+}
+
+.footerBrandLogo {
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+}
+
+.footerBrand h2 {
+  margin: 0 0 6px;
+  color: var(--hero-text-primary);
+  font-size: clamp(20px, 2vw, 26px);
+}
+
+.footerBrand p {
+  margin: 0;
+  color: var(--hero-text-secondary);
+  max-width: 52ch;
+  font-size: 14px;
+}
+
+.footerLinks,
+.footerContacts {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.footerLinks h3,
+.footerContacts h3 {
+  margin: 0 0 4px;
+  color: var(--hero-text-primary);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.footerLinks a {
+  color: var(--hero-text-secondary);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.footerLinks a:hover {
+  color: var(--hero-text-primary);
+  text-decoration: underline;
+}
+
+.footerContacts p {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.footerContacts span {
+  color: var(--hero-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.footerContacts a,
+.footerContacts strong {
+  color: var(--hero-text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.footerContacts a:hover {
+  text-decoration: underline;
+}
+
+.footerBottom {
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.footerBottom p {
+  margin: 0;
+  color: var(--hero-text-secondary);
+  font-size: 12px;
 }
 
 .registerCard {
@@ -794,6 +983,7 @@
 :global(.dark) .infoCard,
 :global(.dark) .detailCard,
 :global(.dark) .benefitCard,
+:global(.dark) .teamCard,
 :global(.dark) .registerCard {
   border-color: rgba(195, 177, 236, 0.28);
   background:
@@ -815,6 +1005,14 @@
 :global(.dark) .launchNotice {
   border-color: rgba(195, 177, 236, 0.34);
   background: rgba(41, 32, 63, 0.62);
+}
+
+:global(.dark) .footerInner {
+  border-top-color: rgba(195, 177, 236, 0.3);
+}
+
+:global(.dark) .footerBottom {
+  border-top-color: rgba(195, 177, 236, 0.26);
 }
 
 @keyframes riseIn {
@@ -839,6 +1037,17 @@
 
   50% {
     transform: translateY(-12px);
+  }
+}
+
+@keyframes teamAvatarFrontFloat {
+  0%,
+  100% {
+    transform: scale(1) translateX(0);
+  }
+
+  50% {
+    transform: scale(1.09) translateX(1px);
   }
 }
 
@@ -890,32 +1099,106 @@
     grid-template-columns: 1fr;
   }
 
+  .heroInner {
+    justify-items: center;
+    text-align: center;
+    gap: 14px;
+  }
+
+  .heroContent {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .heroActions {
+    justify-content: center;
+  }
+
   .heroVisual {
-    order: -1;
+    order: 0;
+  }
+
+  .heroVisualDesktop {
+    display: none;
+  }
+
+  .heroVisualMobile {
+    display: grid;
+    margin-top: 2px;
+    margin-bottom: 4px;
   }
 
   .visualFrame {
-    min-height: 420px;
+    min-height: 300px;
+    width: min(100%, 280px);
   }
 
   .heroSection {
     min-height: auto;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
 
-  .mascotTagEdge {
-    left: 2%;
+  .mascotImg {
+    width: min(100%, 220px);
+  }
+
+  .mascotTag {
+    display: inline-flex;
+    font-size: 11px;
+    padding: 7px 11px;
+  }
+
+  .mascotTagTopRight {
+    top: 18%;
+    inset-inline-end: -7%;
+  }
+
+  .mascotTagBottomLeft {
+    bottom: 25%;
+    inset-inline-start: -6%;
+  }
+
+  .mascotTagBottomRight {
+    bottom: 2%;
+    inset-inline-end: 0;
+  }
+
+  .teamGrid {
+    grid-template-columns: repeat(3, minmax(180px, 1fr));
+  }
+
+  .footerTop {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 1fr);
+  }
+
+  .footerContacts {
+    grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 960px) {
   .navbarInner {
     grid-template-columns: 1fr;
-    justify-items: start;
+    justify-items: stretch;
     padding-block: 12px;
+    gap: 10px;
   }
 
   .navbarMenu {
     justify-content: flex-start;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .navbarMenu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .menuLink {
+    flex: 0 0 auto;
   }
 
   .heroInner {
@@ -933,6 +1216,309 @@
   .visualFrame {
     width: min(100%, 360px);
     min-height: 380px;
+  }
+
+  .teamGrid {
+    grid-template-columns: repeat(2, minmax(170px, 1fr));
+  }
+
+  .footerTop {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .footerContacts {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .page {
+    padding-bottom: 20px;
+  }
+
+  .navbarInner {
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    justify-items: stretch;
+    align-items: center;
+  }
+
+  .navbarBrand {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  .brandText {
+    max-width: none;
+    text-align: center;
+  }
+
+  .brandLogo {
+    width: 86px;
+    height: 86px;
+  }
+
+  .navbarMenu {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0;
+    padding-inline-end: 4px;
+  }
+
+  .menuLink {
+    flex: 0 0 auto;
+    min-height: 40px;
+    width: 40px;
+    padding: 0;
+    font-size: 12px;
+    gap: 0;
+    justify-content: center;
+  }
+
+  .navIcon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .menuLink span {
+    display: none;
+  }
+
+  .navbarSettings {
+    width: fit-content;
+    min-width: 0;
+    display: block;
+    justify-self: end;
+  }
+
+  .settingsLabel {
+    display: none;
+  }
+
+  .settingsTrigger {
+    width: 40px;
+    min-height: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .settingsPanel {
+    inset-inline-start: auto;
+    inset-inline-end: 0;
+    width: min(280px, calc(100vw - 24px));
+    max-height: min(70svh, 420px);
+    overflow-y: auto;
+  }
+
+  .heroSection {
+    padding-top: 4px;
+    padding-bottom: 8px;
+  }
+
+  .heroInner {
+    gap: 10px;
+  }
+
+  .heroContent {
+    gap: 14px;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .title {
+    font-size: clamp(28px, 8.4vw, 40px);
+    max-width: 14ch;
+  }
+
+  .subtitle,
+  .sectionText {
+    max-width: 32ch;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .heroActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .primaryButton,
+  .secondaryButton,
+  .summaryLink {
+    width: 100%;
+  }
+
+  .heroVisual {
+    display: grid;
+    width: 100%;
+    justify-items: center;
+  }
+
+  .visualFrame {
+    width: min(100%, 230px);
+    min-height: 260px;
+    overflow: visible;
+  }
+
+  .mascotImg {
+    width: min(100%, 170px);
+  }
+
+  .mascotTag {
+    display: inline-flex;
+    font-size: 10px;
+    padding: 6px 9px;
+  }
+
+  .mascotTagTopRight {
+    top: 12%;
+    inset-inline-end: -2%;
+  }
+
+  .mascotTagBottomLeft {
+    bottom: 30%;
+    inset-inline-start: -1%;
+  }
+
+  .mascotTagBottomRight {
+    bottom: 4%;
+    inset-inline-end: 0;
+  }
+
+  .section {
+    padding: 12px 0;
+  }
+
+  .sectionShell {
+    gap: 14px;
+  }
+
+  .sectionHeader {
+    gap: 8px;
+  }
+
+  .detailGrid,
+  .benefitsGrid {
+    display: grid;
+    width: 100%;
+    overflow: visible;
+    gap: 10px;
+  }
+
+  .detailGrid > *,
+  .benefitsGrid > * {
+    flex: 1 1 auto;
+  }
+
+  .teamGrid {
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .registerCard {
+    padding: 16px;
+    gap: 14px;
+    border-radius: 16px;
+  }
+
+  .form {
+    gap: 10px;
+  }
+
+  .field input,
+  .field select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .submitButton {
+    min-height: 46px;
+    font-size: 14px;
+  }
+
+  .siteFooter {
+    margin-top: 10px;
+    padding-bottom: 6px;
+  }
+
+  .footerTop,
+  .footerInner {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .footerBottom {
+    text-align: center;
+  }
+
+  .teamAvatarWrap {
+    width: 110px;
+    height: 110px;
+  }
+
+  .teamAvatar {
+    width: 106px;
+    height: 106px;
+  }
+}
+
+@media (max-width: 420px) {
+  .navbarInner {
+    padding-inline: 12px;
+  }
+
+  .menuLink {
+    width: 36px;
+    min-height: 36px;
+    font-size: 10px;
+  }
+
+  .settingsTrigger {
+    width: 36px;
+    min-height: 36px;
+    padding: 0;
+    font-size: 11px;
+  }
+
+  .settingsIcon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .brandLogo {
+    width: 76px;
+    height: 76px;
+  }
+
+  .visualFrame {
+    width: min(100%, 210px);
+    min-height: 240px;
+  }
+
+  .mascotImg {
+    width: min(100%, 155px);
+  }
+
+  .title {
+    font-size: clamp(26px, 9vw, 34px);
+  }
+
+  .subtitle,
+  .sectionText {
+    max-width: 100%;
+    font-size: 13px;
+  }
+
+  .registerCard {
+    padding: 14px;
   }
 }
 
@@ -954,7 +1540,9 @@
 
 :global(html[dir="rtl"]) .navbarInner,
 :global(html[dir="rtl"]) .heroContent,
-:global(html[dir="rtl"]) .registerCard {
+:global(html[dir="rtl"]) .registerCard,
+:global(html[dir="rtl"]) .footerInner,
+:global(html[dir="rtl"]) .footerTop {
   direction: rtl;
   text-align: right;
 }
@@ -989,6 +1577,45 @@
   direction: rtl;
 }
 
+:global(html[dir="rtl"]) .heroVisualMobile {
+  direction: rtl;
+}
+
+:global(html[dir="rtl"]) .heroVisualDesktop {
+  direction: rtl;
+}
+
+
+@media (max-width: 700px) {
+  :global(html[dir="rtl"]) .navbarInner {
+    grid-template-columns: auto 1fr;
+  }
+
+  :global(html[dir="rtl"]) .navbarSettings {
+    justify-self: start;
+  }
+
+  :global(html[dir="rtl"]) .settingsPanel {
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+  }
+
+  :global(html[dir="rtl"]) .navbarMenu {
+    justify-content: flex-end;
+  }
+
+  :global(html[dir="rtl"]) .heroContent {
+    justify-items: center;
+    text-align: center;
+  }
+
+  :global(html[dir="rtl"]) .launchNotice {
+    margin-inline-start: 0;
+    margin-inline-end: 0;
+    text-align: center;
+  }
+}
+
 
 :global(html[dir="rtl"]) .mascotBadgePrimary {
   left: auto;
@@ -999,10 +1626,3 @@
   right: auto;
   left: 10px;
 }
-
-
-
-
-
-
-
